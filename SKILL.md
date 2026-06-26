@@ -9,7 +9,7 @@ license: MIT
 source: https://github.com/indigokarasu/ocas-usercontext
 metadata:
   author: Indigo Karasu (indigokarasu)
-  version: 1.3.0
+  version: 1.4.0
   hermes:
     tags: [context, daily, cron]
     category: infrastructure
@@ -26,10 +26,10 @@ A `## Daily Context` section written into `~/.hermes/profiles/indigo/memories/US
 ```markdown
 # Daily Context YYYY-MM-DD
 
-## Snapshot
-**Mood:** [inferred from interaction patterns]
-**Location:** [current or inferred]
-**Week:** [1-line week theme]
+## Snapshot (YYYY-MM-DD)
+**Mood:** [label] about [topic], [label2] about [topic2]
+**Location:** [city]
+**Week:** [1-line theme]
 
 ## Yesterday (YYYY-MM-DD)
 [2-3 bullets of what happened]
@@ -53,7 +53,7 @@ A `## Daily Context` section written into `~/.hermes/profiles/indigo/memories/US
 
 ## Mood Inference
 
-Mood is inferred from session patterns via `session_search`. See `references/mood-inference.md` for the full signal table and confidence rules.
+Mood is not one word. Multiple emotions can coexist across different life dimensions. Infer from all available signals within a 7-day window: sessions (limit 10), calendar events, email outcomes, and chronicle facts. See `references/mood-inference.md` for the full inference rules, data sources, and output format.
 
 ## Data Sources
 
@@ -61,16 +61,19 @@ See `references/data-sources.md` for the full tool-to-signal mapping. Primary so
 
 ## Generation Workflow
 
-- [ ] Step 1: Gather signals in parallel
+- [ ] Step 1: Gather signals (7-day window)
   - Calendar events for yesterday, today, tomorrow (3 separate `mcp_google_workspace_get_events` calls)
-  - Recent session activity (`session_search`, limit=5)
+  - Session history (`session_search`, limit=10, no filter — broad activity picture)
+  - Email signals (`mcp_google_workspace_search_gmail_messages` for outcomes: rejections, confirmations, deadlines)
   - Chronicle context (`chronicle_ask_about`)
 - [ ] Step 2: Extract and compress
   - For each day (yesterday, today, tomorrow): list calendar events (title + time), note session activity patterns, compress to 2-3 bullets (max 12 words each)
 - [ ] Step 3: Infer mood
-  - Scan last 3-5 sessions for tone signals
-  - Apply mood inference table
-  - If no sessions found, mood = "unknown"
+  - Search broadly: `session_search` (limit 10, no keyword filter) for overall activity pattern
+  - Search for specific signals: job/travel/health keywords if context suggests them
+  - Cross-reference calendar events and email outcomes
+  - Build up to 3 mood dimensions: [label] about [topic]
+  - If insufficient signal, mood = "unknown"
 - [ ] Step 4: Determine location
   - Check chronicle for known travel
   - Check calendar for out-of-city events
