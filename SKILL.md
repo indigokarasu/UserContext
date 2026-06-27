@@ -129,17 +129,22 @@ See `references/data-sources.md` for the full mapping and degradation behavior.
 - [ ] **Step 6 — Patch USER.md.** Replace ONLY the `## Daily Context` block (from
       that heading to the next `##` or EOF). Use the `file`/patch tool with an exact
       match; never touch identity, preferences, or any other section.
-- [ ] **Step 7 — Validate (do not skip).** Run `references/validation.md` checklist:
-      word count < 300, no em dashes, dates correct, mood cites evidence or says
-      low-signal, patch landed, other sections untouched. Re-compress if over budget.
-- [ ] **Step 8 — Deliver.** Send the snapshot to the owner via Telegram (origin
-      channel). If delivery fails, the block is already on disk; log and move on.
+- [ ] **Step 7 — Validate, then stop (do not skip).** Run `references/validation.md`
+      checklist: word count < 300, no em dashes, dates correct, mood cites evidence
+      or says low-signal, patch landed, other sections untouched. Re-compress if over
+      budget. The patched block on disk is the entire deliverable — **do not send
+      anything to Telegram or any chat.** This is a silent context-maintenance job.
 
 ## Schedule and runtime wiring
 
 | Job | Schedule | Action |
 |-----|----------|--------|
-| `daily-user-context` (`53920c89f796`) | `0 7 * * *` (07:00 PT — box is America/Los_Angeles) | Generate + patch USER.md + deliver |
+| `daily-user-context` (`53920c89f796`) | `0 7 * * *` (07:00 PT — box is America/Los_Angeles) | Generate + patch USER.md. **Silent: `deliver: local`, no chat output.** |
+
+This job writes to USER.md and nothing else. The cron's `deliver` field is set to
+`local` (save-only); it must not be `origin`/`telegram`. USER.md is loaded into every
+session, so the patched block reaches the agent that way — pushing a daily Telegram
+message would be redundant noise.
 
 **Critical:** the cron job carries an inlined prompt; it does not auto-read this
 SKILL.md. When you change the workflow or format here, you MUST sync the change
@@ -172,7 +177,7 @@ The file lives under `memories/`, not at the profile root.
 | Patch can't find `## Daily Context` | First run: append the block after the last `##`. |
 | Patch fuzzy-matches wrong section | Read raw USER.md, use an exact `old_string`. |
 | USER.md missing | Create it with the Daily Context block as first content. |
-| Telegram delivery fails | Block is already written; log, retry next run. |
+| Tempted to send to Telegram | Don't. This job is `deliver: local`; the block on disk is the deliverable. |
 | Output exceeds 300 words | Re-compress: bullets to 8 words, mood to 1 dimension, week to 5 words. |
 | All sources fail at once | Minimal honest snapshot: mood `unknown`, location `unknown`, `No available data` per day. Still run; never skip. |
 
@@ -180,6 +185,6 @@ The file lives under `memories/`, not at the profile root.
 
 1. Verify USER.md exists at `~/.hermes/profiles/indigo/memories/USER.md`.
 2. Add a `## Daily Context` block with a placeholder snapshot.
-3. Confirm cron `53920c89f796` exists (`0 7 * * *`, deliver origin); if not, register it.
+3. Confirm cron `53920c89f796` exists (`0 7 * * *`, `deliver: local`); if not, register it.
 4. Confirm the cron prompt matches this skill's workflow and format.
 5. Log to journal.
