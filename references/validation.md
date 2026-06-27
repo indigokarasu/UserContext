@@ -1,6 +1,6 @@
 # Validation Checklist (Step 7)
 
-Run this every time, before delivery. The previous version claimed these limits
+Run this every time, before finishing. The previous version claimed these limits
 but never checked them, so violations shipped daily. Each item is a hard gate.
 
 ## Format gates
@@ -34,7 +34,12 @@ but never checked them, so violations shipped daily. Each item is a hard gate.
 
 ## On failure
 
-If a gate fails, fix and re-validate before delivery. If the safety gates fail
+If a gate fails, fix and re-validate before finishing. If the safety gates fail
 (other sections changed), restore USER.md from the pre-run state and re-patch
-with an exact `old_string` rather than fuzzy matching. Never deliver a snapshot
-whose patch may have clobbered another section.
+with an exact `old_string` rather than fuzzy matching. Never leave USER.md in a
+state where the patch may have clobbered another section.
+
+## Delivery
+
+None. This is a silent job (`deliver: local`). Do not send the snapshot to
+Telegram or any chat. The patched block in USER.md is the entire deliverable.
