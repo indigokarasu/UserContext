@@ -13,20 +13,30 @@ A reservation, a meeting, a flight on the calendar tells you the *schedule*, not
 the *feeling*. The historical failure of this skill was laundering calendar
 events into emotions ("tea reservation" → "anticipation for tea";
 "dinner booked" → "content"). Stop. Those are events; they belong in the day
-bullets, not in mood. Mood evidence comes from two places only:
+bullets, not in mood. Mood evidence comes from two signal categories only:
 
-1. **Session tone** (the SESSIONS role — e.g. a session/history search) — pacing,
-   topics raised, topics avoided, frustration, playfulness, repetition, what the
-   owner kept returning to.
-2. **Email outcomes** (the EMAIL role — a mail search) — a rejection, an offer, a
-   confirmation, a cancellation, a bill, a deadline. Outcomes carry emotional
-   weight; calendar entries do not.
+1. **INTERACTION tone** — how the owner is communicating *now*, across every
+   conversational channel the setup exposes: agent sessions, and any enabled
+   personal messaging (iMessage, Slack, WhatsApp, Signal, SMS, Discord), and the
+   texture of email threads. Read pacing, topics raised, topics avoided,
+   frustration, playfulness, repetition, what the owner kept returning to. The
+   owner's tone with *people* is often a richer mood signal than tone with the
+   agent — weight it accordingly.
+2. **OUTCOME weight** — discrete results that landed, on *any* channel: a rejection,
+   an offer, a confirmation, a cancellation, a bill, a deadline. Outcomes carry
+   emotional weight; scheduled events do not.
 
-The MEMORY role (a memory search or context engine) supplies *standing context*
-that colors interpretation (a known job transition, a recent loss, ongoing travel)
-but is not itself same-day mood evidence. Use it to interpret signals, not to
-manufacture them. If SESSIONS or EMAIL is absent in this setup, mood relies on
-whichever remains; if both are absent, mood is `quiet (low signal)`.
+The STANDING category (a memory search or context engine) supplies *standing
+context* that colors interpretation (a known job transition, a recent loss,
+ongoing travel) but is not itself same-day mood evidence. Use it to interpret
+signals, not to manufacture them. If INTERACTION or OUTCOME has no source, mood
+relies on whichever remains; if both are absent, mood is `quiet (low signal)`.
+
+**Across channels:** read every source in a category, do not stop at the first.
+**Dedup:** the same outcome on email and a text is one signal, not two — counting
+it twice falsely inflates a dimension. **Privacy:** cite evidence by channel, never
+by quoting it — `frustrated about a delayed contractor (messages)`, never the
+message text. USER.md is read in every session; treat it as broadly visible.
 
 ## Output shape
 
@@ -46,47 +56,55 @@ evidence-backed dimensions, never collapsed to a single mandated word.)
 ## The Signal Ledger (do this before writing mood)
 
 Before composing the mood line, write an internal ledger — one line per signal,
-each tagged with its source. You are not allowed to assert a mood dimension that
-does not trace to a ledger line. Example:
+tagged `[category/channel]`. You are not allowed to assert a mood dimension that
+does not trace to a ledger line. Example (a setup with sessions, iMessage, and
+email):
 
 ```
-[session]  Repeated frustration about a deploy that kept failing; returned to it 3x
-[session]  Playful tangent about a side project late in the day
-[email]    Rejection from <employer> re: senior role
-[email]    Confirmation: flight to Honolulu booked
-[memory]   Standing: job transition in progress (interpret job signals through this)
-[trajectory] Yesterday's mood was "dejected about job search" -> persists
+[INTERACTION/session]   Repeated frustration about a deploy that kept failing; returned to it 3x
+[INTERACTION/imessage]  Warm, joking thread with a friend in the evening
+[OUTCOME/email]         Rejection re: senior role
+[OUTCOME/imessage]      Same rejection mentioned to a friend by text -> DEDUP, one signal
+[OUTCOME/email]         Confirmation: flight booked
+[STANDING/memory]       Job transition in progress (interpret job signals through this)
+[trajectory]            Yesterday's mood was "dejected about job search" -> persists
 ```
+
+Note the dedup: the rejection landed on two channels but is one ledger signal. The
+mood line cites it by channel, never by quoting the text.
 
 A thin ledger:
 
 ```
-[session]  One short logistics session, neutral tone
-[email]    Nothing notable
-[memory]   No active travel or standing event surfaced
+[INTERACTION/session]   One short logistics session, neutral tone
+[OUTCOME/*]             Nothing notable on any channel
+[STANDING/memory]       No active travel or standing event surfaced
 ```
 
 → yields `quiet (low signal)`. That is the honest answer; write it.
 
 ## Inference procedure
 
-### 1. Scan sessions broadly, then targeted
+### 1. Scan INTERACTION broadly, then targeted
 
-- Broad session search (no keyword) first — read the overall tone and what
-  dominated. (If the setup's history search takes a limit, ~10 recent is plenty.)
+- Broad scan (no keyword) first, over every INTERACTION source present — sessions
+  and any enabled messaging — to read the overall tone and what dominated. (If a
+  history/message search takes a limit, ~10 recent per source is plenty.)
 - Then targeted only if the broad scan hints at it (do not fish for drama):
   - job: search `interview OR rejected OR offer OR job OR resume`
   - travel: search `trip OR flight OR hotel OR <destination>`
   - health/admin: search `medical OR appointment OR insurance OR Rx`
 - The targeted searches confirm or size a signal the broad scan already raised.
-  Do not invent a dimension from a targeted search that the broad scan and email
+  Do not invent a dimension from a targeted search that the broad scan and OUTCOME
   did not corroborate.
 
-### 2. Read email for outcomes (not subjects)
+### 2. Read OUTCOME for results (not subjects)
 
 An outcome is something that resolved or is due: a rejection, an acceptance, a
-confirmation, a cancellation, a bill, a hard deadline. A newsletter is not an
-outcome. Weight outcomes by how much they change the owner's situation.
+confirmation, a cancellation, a bill, a hard deadline. It can land in email or in
+any messaging channel. A newsletter is not an outcome; a meme thread is not an
+outcome. Weight outcomes by how much they change the owner's situation, and
+**dedup** the same outcome across channels before weighting it.
 
 ### 3. Apply standing context from memory
 
