@@ -1,101 +1,150 @@
 # Mood Inference
 
-Mood is not one word. Multiple emotions can coexist across different life dimensions. The goal is to capture emotional context across all signals the system has access to within the allocated window, not summarize feelings into a single label.
+This is the only field in the snapshot that is genuinely *inferred*. Get it
+right or leave it empty. A fabricated mood is worse than `quiet (low signal)`,
+because the agent makes decisions about how to talk to the owner based on it.
 
-## Data Sources
+## The one rule that matters most
 
-Mood is inferred by reading across all available signals within the window:
+**Mood is read from how the owner interacted and what outcomes landed. It is
+NEVER read from the calendar.**
 
-| Source | Tool | What it reveals |
-|--------|------|-----------------|
-| Session history | `session_search` (limit 10, not 5) | Tone, pacing, topics discussed, avoided topics |
-| Calendar events | `mcp_google_workspace_get_events` | High-stakes events (interviews, deadlines, appointments, travel) |
-| Email signals | `mcp_google_workspace_search_gmail_messages` | Outcomes (rejections, acceptances, confirmations), urgency patterns |
-| Chronicle facts | `chronicle_ask_about` | Known stressors, life events, ongoing situations |
+A reservation, a meeting, a flight on the calendar tells you the *schedule*, not
+the *feeling*. The historical failure of this skill was laundering calendar
+events into emotions ("tea reservation" → "anticipation for tea";
+"dinner booked" → "content"). Stop. Those are events; they belong in the day
+bullets, not in mood. Mood evidence comes from two places only:
 
-## Window
+1. **Session tone** (`session_search`) — pacing, topics raised, topics avoided,
+   frustration, playfulness, repetition, what the owner kept returning to.
+2. **Email outcomes** (gmail search) — a rejection, an offer, a confirmation, a
+   cancellation, a bill, a deadline. Outcomes carry emotional weight; calendar
+   entries do not.
 
-- **Primary window:** Last 7 days (not 3 sessions)
-- **Extended context:** If a significant event is found (job interview, rejection, trip), broaden to 14 days using `session_search` with relevant date ranges
+Memory (`memory` search) supplies *standing context* that colors interpretation
+(a known job transition, a recent loss, ongoing travel) but is not itself
+same-day mood evidence. Use it to interpret signals, not to manufacture them.
 
-## Mood Dimensions
+## Output shape
 
-Mood is structured as a list of **active dimensions**, each with a short label and the signal that produced it. Do not collapse to one word.
-
-Format:
 ```
 **Mood:** [label] about [topic], [label2] about [topic2]
 ```
 
-Examples:
-```
-**Mood:** dejected about job search, excited about upcoming trip, stressed about insurance lapse
-**Mood:** focused on floorplan feedback, relaxed week overall
-**Mood:** unknown (insufficient signal)
-```
+- 1 to 3 dimensions, strongest first, **each backed by a concrete signal**.
+- Contradictions are valid and valuable: `dejected about job search, excited about Honolulu trip` can both be true in one week. Preserve them; do not average them into "mixed."
+- No hedging words ("seems", "might"). State the observed signal plainly.
+- If you cannot point to a concrete signal for a dimension, the dimension does not exist.
+- Thin or no signal → `quiet (low signal)`. This is a correct, common answer. It is not a failure.
 
-## Inference Rules
+(Note: this supersedes any older "one word only" instruction. Mood is 1-3
+evidence-backed dimensions, never collapsed to a single mandated word.)
 
-### 1. Scan broadly first
+## The Signal Ledger (do this before writing mood)
 
-Run `session_search` with limit=10, no keyword filter (get overall activity pattern). Then search for known signal keywords:
-- `session_search(query="interview OR rejected OR offer OR job")` if job context suspected
-- `session_search(query="trip OR travel OR flight OR hotel")` if travel context suspected
-- `session_search(query="medical OR appointment OR insurance OR Rx")` if health context suspected
-
-### 2. Cross-reference with calendar
-
-Look at calendar events for:
-- Interview events, rejection/confirmation outcomes
-- Medical appointments, prescription renewals
-- Travel bookings, flight confirmations
-- Deadline-driven meetings
-
-### 3. Check email for outcomes
-
-Search Gmail for recent outcomes:
-- Job application responses
-- Booking/travel confirmations or cancellations
-- Bills, insurance notices, appointment reminders
-
-### 4. Build dimensions
-
-For each significant signal found, add one mood dimension. Order by emotional weight (strongest first).
-
-| Signal type | Possible mood labels |
-|-------------|---------------------|
-| Job rejection / failed interview | dejected, frustrated, defeated, anxious |
-| Job offer / accepted interview | excited, relieved, optimistic |
-| Upcoming deadline | stressed, anxious, determined, focused |
-| Travel planning / trip coming | excited, anticipatory, relaxed |
-| Medical / insurance / coverage gap | worried, anxious, stressed |
-| Calendar silence (no events) | unplanned, open, unstructured |
-| Many rapid email threads | overwhelmed, busy, engaged |
-| Few / no sessions | quiet, independent, unknown |
-| Correcting me / repeating myself | frustrated, impatient |
-| Playful / humorous interaction | relaxed, energized, creative |
-
-### 5. Constraints
-
-- **Max 3 dimensions.** Pick the 3 strongest signals. Do not list every minor fluctuation.
-- **No false positives.** If you can't find concrete evidence, don't invent a dimension.
-- **Preserve contradictions.** "Dejected about job, excited about trip" is valid and useful.
-- **No hedging.** Don't say "seems like" or "might be." Present observed signals confidently.
-- **If insufficient signal:** mood = "unknown"
-- **Mood is not advice.** Don't suggest what to do about it. Just report what signals indicate.
-
-## Output Examples
-
-After interviewing for a role you've wanted for months and getting rejected:
+Before composing the mood line, write an internal ledger — one line per signal,
+each tagged with its source. You are not allowed to assert a mood dimension that
+does not trace to a ledger line. Example:
 
 ```
-**Mood:** dejected about job search
+[session]  Repeated frustration about the gateway OOMing; returned to it 3x
+[session]  Playful tangent about a side project late in the day
+[email]    Rejection from <employer> re: senior role
+[email]    Confirmation: flight to Honolulu booked
+[memory]   Standing: job transition in progress (interpret job signals through this)
+[trajectory] Yesterday's mood was "dejected about job search" -> persists
 ```
 
-But also — if in the same week you booked a trip to Honolulu and have a health appointment coming up:
+A thin ledger:
 
 ```
-**Mood:** dejected about job search, excited about Honolulu trip, worried about coverage gap
+[session]  One short logistics session, neutral tone
+[email]    Nothing notable
+[memory]   No active travel or standing event surfaced
 ```
 
-Both are true. The assistant needs all three to be useful.
+→ yields `quiet (low signal)`. That is the honest answer; write it.
+
+## Inference procedure
+
+### 1. Scan sessions broadly, then targeted
+
+- `session_search` limit 10, **no keyword** first — read the overall tone and
+  what dominated.
+- Then targeted only if the broad scan hints at it (do not fish for drama):
+  - job: `session_search("interview OR rejected OR offer OR job OR resume")`
+  - travel: `session_search("trip OR flight OR hotel OR Honolulu")`
+  - health/admin: `session_search("medical OR appointment OR insurance OR Rx")`
+- The targeted searches confirm or size a signal the broad scan already raised.
+  Do not invent a dimension from a targeted search that the broad scan and email
+  did not corroborate.
+
+### 2. Read email for outcomes (not subjects)
+
+An outcome is something that resolved or is due: a rejection, an acceptance, a
+confirmation, a cancellation, a bill, a hard deadline. A newsletter is not an
+outcome. Weight outcomes by how much they change the owner's situation.
+
+### 3. Apply standing context from memory
+
+`memory` search for active travel and standing situations. Use it to *interpret*
+(a curt job-related session reads differently mid-transition) — never to assert
+a same-day mood with no same-day signal.
+
+### 4. Build 1-3 dimensions
+
+| Signal observed in ledger | Candidate labels |
+|---------------------------|------------------|
+| Job rejection / failed interview (session or email) | dejected, frustrated, defeated, anxious |
+| Job offer / advanced stage | excited, relieved, optimistic |
+| Hard deadline approaching (email/session, not just a calendar block) | stressed, determined, focused |
+| Trip confirmed / actively planned | excited, anticipatory |
+| Health/insurance/coverage outcome | worried, anxious |
+| Many rapid email threads + busy sessions | overwhelmed, engaged |
+| Few/short neutral sessions, no outcomes | quiet (low signal) |
+| Owner correcting me / repeating himself | frustrated, impatient |
+| Playful/humorous session tone | relaxed, energized, creative |
+
+Order by emotional weight. Cap at 3. No false positives.
+
+### 5. Apply trajectory (the continuity layer)
+
+Compare to yesterday's snapshot (read in Step 0 of the workflow):
+
+- Dimension present yesterday and today → prefix `still`: `still dejected about job search`.
+- New today → prefix `now` or leave plain: `now relieved about the offer`.
+- Yesterday's dimension gone, no replacement signal → drop it silently; do not
+  carry a stale mood forward, and do not assert it "lifted" without a signal.
+
+Trajectory is what makes a *daily* tracker more than a daily *snapshot*. A third
+consecutive low day reads very differently from a one-off, and the agent should
+know which it is.
+
+## Sensitivity
+
+Standing context in memory may include difficult, long-running facts (a
+bereavement, a strained relationship, a health matter). Handle with restraint:
+do not surface a sensitive standing fact as "mood" unless a same-day signal
+genuinely raised it, and even then label the *signal*, not the underlying fact.
+The snapshot is read by the agent in every session; it should inform tone, not
+broadcast private weight without cause.
+
+## Worked examples
+
+Rich week:
+```
+**Mood:** still dejected about job search, excited about Honolulu trip, worried about coverage gap
+```
+(job rejection in email + persists from yesterday; flight confirmation; insurance notice — three real ledger signals.)
+
+Quiet day:
+```
+**Mood:** quiet (low signal)
+```
+(one neutral logistics session, no outcomes — honest, correct, not a failure.)
+
+Shift day:
+```
+**Mood:** now relieved about the offer
+```
+(yesterday "anxious about interview"; today an acceptance email landed — trajectory captured.)
