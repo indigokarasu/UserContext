@@ -21,6 +21,9 @@ but never checked them, so violations shipped daily. Each item is a hard gate.
 - [ ] **No fabricated events.** Every bullet maps to a real calendar entry, or the
       day says `No scheduled events`.
 - [ ] **Location is real or `unknown`.** Not assumed from home base.
+- [ ] **No private content leaked.** No message or email text is quoted in the
+      block. Mood evidence is cited by channel only (e.g. `(messages)`). Outcomes
+      seen on multiple channels are deduped, not double-counted.
 - [ ] **Trajectory applied** when a prior snapshot existed: persisting moods
       marked `still`, changed moods marked `now`/`shifted`, vanished moods dropped.
 

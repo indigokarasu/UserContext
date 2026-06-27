@@ -45,44 +45,55 @@ bare one (sessions only, or even nothing).
 Be clear about what is *extracted* vs *inferred* — they have different failure
 modes and conflating them is this skill's classic defect:
 
-| Field | Kind | Drawn from |
-|-------|------|-----------|
-| Yesterday/Today/Tomorrow bullets | **Extracted** | Calendar capability. Report what is scheduled; do not editorialize. |
-| Location | **Extracted** | Calendar geography + memory of known travel. Default `unknown`. |
-| Week theme | **Summarized** | The week's calendar shape in one line. |
-| Mood | **Inferred** | Session *tone* and email *outcomes* — NOT the calendar. |
+| Field | Kind | Drawn from (by signal category) |
+|-------|------|---------------------------------|
+| Yesterday/Today/Tomorrow bullets | **Extracted** | SCHEDULE sources. Report what is planned; do not editorialize. |
+| Location | **Extracted** | SCHEDULE geography + STANDING travel context. Default `unknown`. |
+| Week theme | **Summarized** | The week's SCHEDULE shape in one line. |
+| Mood | **Inferred** | INTERACTION *tone* and OUTCOME *weight*, from any channel — NOT the schedule. |
 
 The most common defect in this skill's history is **inferring mood from the
 calendar** ("tea reservation" → "anticipation for tea"). A scheduled event is not
 a feeling. Mood comes from how the owner *interacted* and what *outcomes* landed.
-If session and email signal is thin, the correct mood is `quiet (low signal)`, not
-an invention.
+If interaction and outcome signal is thin, the correct mood is `quiet (low signal)`,
+not an invention.
 
-## Capabilities (discover, don't assume)
+## Signal categories (extensible — discover, classify, don't assume)
 
-This skill needs four *capability roles*. Which concrete tool fills each role
-varies by setup, and any role may be **absent**. At the start of every run,
-discover what is available (e.g. list tools / check the toolset) and map them:
+This skill consumes signal by **category**, not by a fixed list of channels. Any
+number of concrete sources can feed a category, and one source can feed several.
+At the start of every run, enumerate *all* available signal tools, classify each
+into the categories below, and use them. A category with no source is simply
+absent; the run degrades, it never aborts.
 
-| Role | What it provides | Typical tools (setup-dependent) | If absent |
-|------|------------------|---------------------------------|-----------|
-| **CALENDAR** | Events per day (title, time, location) | google-workspace calendar, CalDAV, an MCP calendar tool | No day bullets from calendar; lean on sessions/memory; bullets may be `No calendar source`. |
-| **SESSIONS** | Recent interaction tone & topics | `session_search` or equivalent history search | No tone signal; mood leans on email, else `quiet (low signal)`. |
-| **EMAIL** | Recent outcomes (rejections, confirms, deadlines) | google-workspace gmail, IMAP, an MCP mail tool | No outcome signal for mood. |
-| **MEMORY** | Standing context (travel, ongoing situations) | `memory` search, a context engine (e.g. chronicle), notes store | Location may be `unknown`; no standing-context interpretation. |
+| Category | What it yields | Example sources (any subset, setup-dependent) | If no source |
+|----------|----------------|-----------------------------------------------|--------------|
+| **SCHEDULE** | Planned events; day bullets, week theme, location | calendar (google/CalDAV/MCP); reservations & confirmations embedded in mail or messages | No day bullets from schedule; bullets may be `No schedule source`. |
+| **INTERACTION** | How the owner is communicating now → mood *tone* | agent sessions (`session_search`); **personal messaging — iMessage, Slack, WhatsApp, Signal, SMS, Discord**; email threads | No tone signal; mood leans on OUTCOME, else `quiet (low signal)`. |
+| **OUTCOME** | Discrete results that landed → mood *weight* | email; **any messaging channel** ("got the offer", a cancellation); calendar RSVPs | No outcome signal for mood. |
+| **STANDING** | Durable context for interpretation; location | `memory`, a context engine (e.g. chronicle), a notes store | Location may be `unknown`; no standing-context interpretation. |
 
-Rules for portability:
+Rules:
 
-- **Probe, then proceed.** Resolve each role to a concrete available tool. Record
-  which roles are present. Never call a tool you have not confirmed exists.
-- **Every role is optional.** A run with only SESSIONS still produces a valid (if
-  sparse) snapshot. A run with nothing produces an honest `unknown` snapshot. The
-  run must never abort because a role is missing.
-- **Do not hardcode tool names in your reasoning.** Names like `chronicle_ask_about`
-  or `mcp_google_workspace_get_events` exist in some setups and not others;
-  treat them as candidates for a role, confirmed by discovery, not as givens.
+- **Discover and classify, don't assume.** List the tools this setup exposes, map
+  each to one or more categories, record what's present. Never call a tool you have
+  not confirmed exists. A new channel the owner adds (a fresh MCP messaging server,
+  say) needs no skill change — it just classifies into INTERACTION/OUTCOME and is used.
+- **Many sources per category is normal.** Sessions *and* iMessage *and* Slack all
+  feed INTERACTION. Read across them; do not stop at the first.
+- **Dedup across channels.** The same outcome may appear in email and in a text.
+  Count it once, by impact, not once per channel it touched.
+- **Personal messaging is opt-in and privacy-sensitive.** Use message sources only
+  when the setup has deliberately enabled them. The output is mood *labels with
+  evidence cited by category* (e.g. `tense about family logistics (messages)`) —
+  **never quote private message content into USER.md**, which loads into every
+  session. See `references/data-sources.md` and the Sensitivity rules in
+  `references/mood-inference.md`.
+- **Every category is optional.** INTERACTION alone still yields a valid snapshot;
+  nothing available yields an honest `unknown` one.
 
-See `references/data-sources.md` for the role→signal mapping and degradation matrix.
+See `references/data-sources.md` for the full category mapping, channel examples,
+dedup, privacy, and degradation matrix.
 
 ## Where things live (resolve at runtime)
 
@@ -134,15 +145,18 @@ The `## Daily Context` block, written into USER.md exactly as:
 ## Generation workflow
 
 - [ ] **Step 0 — Resolve environment.** Profile root, USER.md path, host timezone.
-      Discover available tools and map them to the CALENDAR / SESSIONS / EMAIL /
-      MEMORY roles. Note which roles are present.
+      Enumerate available tools and classify each into the SCHEDULE / INTERACTION /
+      OUTCOME / STANDING categories. Note which categories have sources (and respect
+      opt-in for personal-messaging sources).
 - [ ] **Step 1 — Read yesterday's snapshot.** Read the existing `## Daily Context`.
       Note prior mood + location: the trajectory baseline for Step 5. (Absent =
       first run; skip the comparison.)
-- [ ] **Step 2 — Build the Signal Ledger.** Gather, do not yet interpret, from each
-      present role: calendar (3 day pulls), sessions (broad tone scan), email
-      (recent outcomes), memory (active travel / standing situations). Write each
-      signal as one line tagged with its role. A thin ledger is fine and honest.
+- [ ] **Step 2 — Build the Signal Ledger.** Gather, do not yet interpret, across all
+      present sources: SCHEDULE (3 day pulls), INTERACTION (broad tone scan over
+      sessions and any enabled messaging), OUTCOME (recent results on any channel),
+      STANDING (active travel / situations). Write each signal as one line tagged with
+      its category and source. **Dedup** the same outcome seen on multiple channels.
+      A thin ledger is fine and honest.
 - [ ] **Step 3 — Extract day bullets.** Per day, list calendar events (title + time)
       as bullets. Empty → `No scheduled events`. No editorializing.
 - [ ] **Step 4 — Determine location.** City from today's calendar geography or a
@@ -196,11 +210,14 @@ or config here, mirror the essentials into the cron prompt. See
 
 | Failure | Response |
 |---------|----------|
-| A capability role has no available tool | Proceed without it (see degradation matrix); never abort. |
-| Calendar pull fails for a day | `No available calendar data` for that day; continue. |
-| Session search empty | No tone bullets; mood leans on email, else `quiet (low signal)`. |
-| Memory search empty | Location may be `unknown`; do not block. |
+| A signal category has no source | Proceed without it (see degradation matrix); never abort. |
+| Calendar/schedule pull fails for a day | `No available calendar data` for that day; continue. |
+| INTERACTION sources all empty | No tone bullets; mood leans on OUTCOME, else `quiet (low signal)`. |
+| STANDING search empty | Location may be `unknown`; do not block. |
 | A named tool from another setup doesn't resolve here | Skip it; it is a candidate, not a requirement. |
+| Same outcome appears on several channels | Dedup: count once by impact, not once per channel. |
+| Tempted to quote a personal message | Don't. Cite evidence by category (`... (messages)`); never paste message text into USER.md. |
+| A messaging source is present but not opted in | Treat as absent; do not pull from it. |
 | Patch can't find `## Daily Context` | First run: append the block after the last `##`. |
 | Patch fuzzy-matches wrong section | Read raw USER.md, use an exact `old_string`. |
 | USER.md missing | Create `<profile>/memories/USER.md` with the block as first content. |
