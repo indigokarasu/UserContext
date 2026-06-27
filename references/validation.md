@@ -8,10 +8,10 @@ but never checked them, so violations shipped daily. Each item is a hard gate.
 - [ ] The block is **under 300 words**. If over, re-compress (bullets to 8 words,
       mood to 1 dimension, week theme to 5 words) and re-count.
 - [ ] **No em dashes** anywhere in the block. Replace with commas/periods.
-- [ ] **No markdown tables** in the block (Telegram does not render them).
+- [ ] **No markdown tables** in the block (chat renderers often do not render them).
 - [ ] Each day bullet is **<= 12 words**; at most 3 bullets per day.
 - [ ] The three dates are correct and consecutive: yesterday, today, tomorrow,
-      relative to the actual run date (box timezone America/Los_Angeles).
+      relative to the actual run date in the host's local timezone (resolved at runtime).
 
 ## Content gates
 
@@ -41,5 +41,8 @@ state where the patch may have clobbered another section.
 
 ## Delivery
 
-None. This is a silent job (`deliver: local`). Do not send the snapshot to
-Telegram or any chat. The patched block in USER.md is the entire deliverable.
+Honor the configured `deliver` setting. The default is `local` (silent,
+write-only): the patched block in USER.md is the entire deliverable; do not send
+it to any chat. If `deliver` is set to a chat target, also push a copy there after
+the patch lands. Either way, the patch is what matters; a delivery failure does
+not invalidate the run.
