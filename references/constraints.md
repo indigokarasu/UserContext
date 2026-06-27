@@ -14,8 +14,8 @@
 - **No weather.** `ocas-vesper` owns weather. Duplicating it adds noise.
 - **No advice.** This reports state; it does not prescribe. Advice belongs in
   `ocas-mentor` / `ocas-vesper`.
-- **No em dashes.** Telegram's markdown mangles them. Use commas and periods.
-- **No markdown tables in the output block.** Telegram does not render them.
+- **No em dashes.** Many chat renderers mangle them. Use commas and periods.
+- **No markdown tables in the output block.** Chat renderers often do not render them.
   (Tables are fine inside these reference files; they are not delivered.)
 - **No meta-narration.** No "here's what I found." Just the snapshot.
 - **Touch only the `## Daily Context` block.** USER.md holds identity,
@@ -25,14 +25,14 @@
 
 ## Why the cron and the skill must be kept in sync
 
-The runtime is a cron job (`53920c89f796` in `cron/jobs.json`) whose prompt is
-**inlined**, not loaded from this SKILL.md. The cron does not read the skill at
-generation time. Therefore:
+In the common Hermes setup the runtime is a cron job whose prompt is **inlined**
+in `cron/jobs.json`, not loaded from this SKILL.md. The cron does not read the
+skill at generation time. Therefore:
 
 - This skill is the **design** source of truth (rationale, full workflow, the
   mood engine, gotchas).
-- The cron prompt is the **runtime** source of truth (what actually executes at
-  7am).
+- The cron prompt is the **runtime** source of truth (what actually executes on
+  schedule).
 - A change in one that is not mirrored in the other is a silent divergence — and
   divergence is exactly how this skill drifted before (the cron carried an old
   format while the skill described a newer one). When you edit the workflow or

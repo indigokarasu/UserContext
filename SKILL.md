@@ -1,19 +1,19 @@
 ---
 name: ocas-usercontext
 description: >
-  Generates the compressed `## Daily Context` block in the owner's USER.md:
+  Maintains a compressed `## Daily Context` block in the owner's USER.md:
   an evidence-grounded snapshot of mood, location, week theme, and
-  yesterday/today/tomorrow bullets, inferred from calendar, session history,
-  and email outcomes. Use when the daily context block needs refreshing, when
-  the daily cron has failed, or when the owner asks for a status snapshot.
-  Keywords: daily context, user snapshot, mood inference, USER.md update,
-  personal briefing. NOT for weather (use ocas-vesper), long-term planning,
-  or advice.
+  yesterday/today/tomorrow bullets, inferred from whatever signal sources the
+  setup exposes (calendar, session history, email, long-term memory). Use when
+  the daily context block needs refreshing, when its scheduled job has failed,
+  or when the owner asks for a status snapshot. Keywords: daily context, user
+  snapshot, mood inference, USER.md update, personal briefing. NOT for weather,
+  long-term planning, or advice.
 license: MIT
 source: https://github.com/indigokarasu/ocas-usercontext
 metadata:
   author: Indigo Karasu (indigokarasu)
-  version: 2.0.0
+  version: 3.0.0
   hermes:
     tags: [context, daily, cron]
     category: infrastructure
@@ -28,39 +28,84 @@ triggers:
 
 ## Purpose
 
-Keep one block of USER.md — `## Daily Context` — fresh every morning so that
-every session that day opens with an accurate read of what is happening in the
-owner's life. USER.md loads into **every** session, so this block is the
-highest-leverage and most-read text the agent maintains. Two failure modes are
-equally bad: **stale** (yesterday's events shown as today's) and **fabricated**
-(a mood or fact invented from thin signal). This skill optimizes against both.
+Keep one block of USER.md — `## Daily Context` — fresh every morning so every
+session that day opens with an accurate read of what is happening in the owner's
+life. USER.md loads into **every** session, so this block is the highest-leverage
+and most-read text the agent maintains. Two failure modes are equally bad:
+**stale** (yesterday's events shown as today's) and **fabricated** (a mood or
+fact invented from thin signal). This skill optimizes against both.
+
+It is designed to be **portable**: it adapts to whatever signal sources and tools
+a given Hermes setup exposes, rather than assuming a fixed toolset. It runs well
+in a rich setup (calendar + email + sessions + memory) and degrades honestly in a
+bare one (sessions only, or even nothing).
 
 ## Honest data model
 
-Be clear about what is *extracted* vs what is *inferred*, because they have
-different failure modes and the previous version conflated them:
+Be clear about what is *extracted* vs *inferred* — they have different failure
+modes and conflating them is this skill's classic defect:
 
-| Field | Kind | Source of truth |
-|-------|------|-----------------|
-| Yesterday/Today/Tomorrow bullets | **Extracted** | Calendar events. Report what is scheduled. Do not editorialize. |
-| Location | **Extracted** | Calendar event geography + memory of known travel. Default `unknown`. |
+| Field | Kind | Drawn from |
+|-------|------|-----------|
+| Yesterday/Today/Tomorrow bullets | **Extracted** | Calendar capability. Report what is scheduled; do not editorialize. |
+| Location | **Extracted** | Calendar geography + memory of known travel. Default `unknown`. |
 | Week theme | **Summarized** | The week's calendar shape in one line. |
-| Mood | **Inferred** | Session *tone* and email *outcomes* — NOT the calendar. See below. |
+| Mood | **Inferred** | Session *tone* and email *outcomes* — NOT the calendar. |
 
-The single most common defect in this skill's history is **inferring mood from
-the calendar** ("tea reservation" → "anticipation for tea"). A reservation is
-an event, not a feeling. Mood comes from how the owner *interacted* and what
-*outcomes* landed, never from restating the schedule. If session and email
-signal is thin, the correct mood is `quiet (low signal)`, not an invented one.
+The most common defect in this skill's history is **inferring mood from the
+calendar** ("tea reservation" → "anticipation for tea"). A scheduled event is not
+a feeling. Mood comes from how the owner *interacted* and what *outcomes* landed.
+If session and email signal is thin, the correct mood is `quiet (low signal)`, not
+an invention.
+
+## Capabilities (discover, don't assume)
+
+This skill needs four *capability roles*. Which concrete tool fills each role
+varies by setup, and any role may be **absent**. At the start of every run,
+discover what is available (e.g. list tools / check the toolset) and map them:
+
+| Role | What it provides | Typical tools (setup-dependent) | If absent |
+|------|------------------|---------------------------------|-----------|
+| **CALENDAR** | Events per day (title, time, location) | google-workspace calendar, CalDAV, an MCP calendar tool | No day bullets from calendar; lean on sessions/memory; bullets may be `No calendar source`. |
+| **SESSIONS** | Recent interaction tone & topics | `session_search` or equivalent history search | No tone signal; mood leans on email, else `quiet (low signal)`. |
+| **EMAIL** | Recent outcomes (rejections, confirms, deadlines) | google-workspace gmail, IMAP, an MCP mail tool | No outcome signal for mood. |
+| **MEMORY** | Standing context (travel, ongoing situations) | `memory` search, a context engine (e.g. chronicle), notes store | Location may be `unknown`; no standing-context interpretation. |
+
+Rules for portability:
+
+- **Probe, then proceed.** Resolve each role to a concrete available tool. Record
+  which roles are present. Never call a tool you have not confirmed exists.
+- **Every role is optional.** A run with only SESSIONS still produces a valid (if
+  sparse) snapshot. A run with nothing produces an honest `unknown` snapshot. The
+  run must never abort because a role is missing.
+- **Do not hardcode tool names in your reasoning.** Names like `chronicle_ask_about`
+  or `mcp_google_workspace_get_events` exist in some setups and not others;
+  treat them as candidates for a role, confirmed by discovery, not as givens.
+
+See `references/data-sources.md` for the role→signal mapping and degradation matrix.
+
+## Where things live (resolve at runtime)
+
+Paths are **profile-relative**, never hardcoded to one machine:
+
+- **Profile root:** the active Hermes profile directory. Resolve from
+  `$HERMES_HOME` if set; otherwise it is the directory this skill is installed
+  under (the parent of `skills/`).
+- **Target file:** `<profile>/memories/USER.md`. (Note: under `memories/`, not the
+  profile root.) If `memories/USER.md` does not exist, check the profile root for a
+  `USER.md`; if neither exists, create `<profile>/memories/USER.md`.
+- **Timezone:** resolve the host timezone at runtime (e.g. `timedatectl` / system
+  clock). Date math for yesterday/today/tomorrow uses the host's local day, never
+  an assumed zone.
 
 ## Output format
 
-Written into `~/.hermes/profiles/indigo/memories/USER.md` as exactly this block:
+The `## Daily Context` block, written into USER.md exactly as:
 
 ```markdown
 ## Daily Context
 
-> Refreshed daily at 7am PT by `ocas-usercontext` cron. Do not manually edit; regenerate instead.
+> Refreshed daily by the `ocas-usercontext` job. Do not manually edit; regenerate instead.
 
 ### Snapshot (YYYY-MM-DD)
 **Mood:** [1-3 evidence-backed dimensions, or `quiet (low signal)`]
@@ -79,112 +124,97 @@ Written into `~/.hermes/profiles/indigo/memories/USER.md` as exactly this block:
 
 ### Compression rules
 
-- Total block **under 300 words**. It costs context on every session.
+- Total block **under 300 words** (configurable; see Configuration). It costs context on every session.
 - Bullets: up to 3 per day, **max 12 words each**.
-- Mood: 1-3 dimensions, each as `[label] about [topic]`; or `quiet (low signal)`.
+- Mood: 1-3 dimensions, each `[label] about [topic]`; or `quiet (low signal)`.
 - Week: one line, max 10 words.
 - Empty calendar day → `No scheduled events`. Never fabricate an event.
-- No weather, no advice, no system/meta narration, **no em dashes** (Telegram mangles them; use commas/periods).
-
-## Tools on THIS box (verified)
-
-The previous version named tools that do not exist here. Use only these:
-
-| Need | Tool that actually works | Notes |
-|------|--------------------------|-------|
-| Calendar events | google-workspace calendar tool (`get_events` / `list_events`) | Per-day pulls for yesterday/today/tomorrow. The reliable backbone. |
-| Session tone/topics | `session_search` | limit 10, broad first then keyword. Primary mood signal. |
-| Email outcomes | google-workspace gmail search | Rejections, confirmations, deadlines. Secondary mood signal. |
-| Known travel / standing context | `memory` (search) | Replaces the dead `chronicle_ask_about`. Read-only here. |
-| Yesterday's snapshot (trajectory) | read USER.md `## Daily Context` | Already on disk. Enables continuity. |
-
-`chronicle_ask_about` is **not available** on this box (chronicle runs in
-fallback). Do not call it. Use `memory` search for standing context, and if it
-returns nothing, degrade — do not block the run.
-
-See `references/data-sources.md` for the full mapping and degradation behavior.
+- No weather, no advice, no system/meta narration, **no em dashes** (chat renderers mangle them; use commas/periods).
 
 ## Generation workflow
 
-- [ ] **Step 0 — Read yesterday's snapshot.** Open USER.md, read the existing
-      `## Daily Context`. Note prior mood + location. This is the trajectory
-      baseline for Step 4. (If absent, this is a first run; skip the comparison.)
-- [ ] **Step 1 — Build the Signal Ledger.** Gather, do not yet interpret:
-      - Calendar: three pulls (yesterday, today, tomorrow). Record title + time + location.
-      - Sessions: `session_search` limit 10, no keyword, for overall tone/topics.
-      - Email: search for recent outcomes (rejection/offer/confirm/deadline/bill).
-      - Memory: `memory` search for active travel or standing situations.
-      Write each signal as one line with its source. Thin ledger is fine and honest.
-- [ ] **Step 2 — Extract day bullets.** For each day, list calendar events as
-      bullets (title + time). Empty → `No scheduled events`. No editorializing.
-- [ ] **Step 3 — Determine location.** City from today's calendar geography or a
+- [ ] **Step 0 — Resolve environment.** Profile root, USER.md path, host timezone.
+      Discover available tools and map them to the CALENDAR / SESSIONS / EMAIL /
+      MEMORY roles. Note which roles are present.
+- [ ] **Step 1 — Read yesterday's snapshot.** Read the existing `## Daily Context`.
+      Note prior mood + location: the trajectory baseline for Step 5. (Absent =
+      first run; skip the comparison.)
+- [ ] **Step 2 — Build the Signal Ledger.** Gather, do not yet interpret, from each
+      present role: calendar (3 day pulls), sessions (broad tone scan), email
+      (recent outcomes), memory (active travel / standing situations). Write each
+      signal as one line tagged with its role. A thin ledger is fine and honest.
+- [ ] **Step 3 — Extract day bullets.** Per day, list calendar events (title + time)
+      as bullets. Empty → `No scheduled events`. No editorializing.
+- [ ] **Step 4 — Determine location.** City from today's calendar geography or a
       memory travel signal. No signal → `unknown`. Never guess from home base.
-- [ ] **Step 4 — Infer mood (the hard part).** Read `references/mood-inference.md`
-      in full. Build 1-3 dimensions, **each citing a concrete ledger signal**.
-      Mood comes from session tone + email outcomes, never from the calendar.
-      Then apply trajectory (Step 0): mark a dimension `still` if it persists from
-      yesterday, `now`/`shifted` if it changed. Thin ledger → `quiet (low signal)`.
-- [ ] **Step 5 — Write the week theme.** One line, max 10 words, from the week's
+- [ ] **Step 5 — Infer mood.** Read `references/mood-inference.md` in full. Build
+      1-3 dimensions, **each citing a concrete ledger signal** (session tone or
+      email outcome, never the calendar). Apply trajectory vs Step 1: `still` if it
+      persists, `now`/`shifted` if changed, drop vanished moods. Thin ledger →
+      `quiet (low signal)`.
+- [ ] **Step 6 — Write the week theme.** One line, max 10 words, from the week's
       calendar shape (travel / deadline-heavy / meeting-heavy / quiet / project push).
-- [ ] **Step 6 — Patch USER.md.** Replace ONLY the `## Daily Context` block (from
-      that heading to the next `##` or EOF). Use the `file`/patch tool with an exact
-      match; never touch identity, preferences, or any other section.
-- [ ] **Step 7 — Validate, then stop (do not skip).** Run `references/validation.md`
-      checklist: word count < 300, no em dashes, dates correct, mood cites evidence
-      or says low-signal, patch landed, other sections untouched. Re-compress if over
-      budget. The patched block on disk is the entire deliverable — **do not send
-      anything to Telegram or any chat.** This is a silent context-maintenance job.
+- [ ] **Step 7 — Patch USER.md.** Replace ONLY the `## Daily Context` block (from
+      that heading to the next `##` or EOF). Use an exact match; never touch
+      identity, preferences, or any other section.
+- [ ] **Step 8 — Validate, then act on delivery (do not skip).** Run the
+      `references/validation.md` checklist. Then honor the configured `deliver`
+      setting (default `local` = silent, write-only). See Configuration.
 
-## Schedule and runtime wiring
+## Configuration
 
-| Job | Schedule | Action |
-|-----|----------|--------|
-| `daily-user-context` (`53920c89f796`) | `0 7 * * *` (07:00 PT — box is America/Los_Angeles) | Generate + patch USER.md. **Silent: `deliver: local`, no chat output.** |
+The skill ships with safe defaults; an installer or owner can override them. On a
+Hermes box these live on the scheduled job (see `references/install.md`); the
+skill should read intent from the job/config rather than hardcoding it.
 
-This job writes to USER.md and nothing else. The cron's `deliver` field is set to
-`local` (save-only); it must not be `origin`/`telegram`. USER.md is loaded into every
-session, so the patched block reaches the agent that way — pushing a daily Telegram
-message would be redundant noise.
+| Knob | Default | Meaning |
+|------|---------|---------|
+| `deliver` | `local` (silent, write-only) | Where the snapshot goes after the patch. `local` = USER.md only. A chat target (e.g. `origin`, `telegram`) also pushes a copy. Most owners want `local`: USER.md already reaches the agent via session load, so a daily chat push is redundant. |
+| `schedule` | once daily, morning, host TZ | When the job runs. |
+| `word_budget` | 300 | Max words in the block. |
+| `weather_skill` | none | If the setup has a dedicated weather/briefing skill (e.g. `ocas-vesper`), this skill still emits no weather; that skill owns it. Purely informational — no hard dependency. |
 
-**Critical:** the cron job carries an inlined prompt; it does not auto-read this
-SKILL.md. When you change the workflow or format here, you MUST sync the change
-into the cron prompt in `~/.hermes/profiles/indigo/cron/jobs.json` (job
-`53920c89f796`) or the change will not take effect. The cron prompt is the
-runtime source of truth; this skill is the design source of truth. Keep them in
-lockstep. See `references/constraints.md` for the divergence rationale.
+## Runtime wiring (Hermes cron)
 
-## Target file
-
-`~/.hermes/profiles/indigo/memories/USER.md` — the `## Daily Context` block only.
-The file lives under `memories/`, not at the profile root.
+If run by a cron whose prompt is **inlined** (the common Hermes pattern), the cron
+does not auto-read this SKILL.md. Then this skill is the **design** source of truth
+and the cron prompt is the **runtime** source of truth; a change in one not
+mirrored in the other is a silent divergence. When you change the workflow, format,
+or config here, mirror the essentials into the cron prompt. See
+`references/install.md` for how to instantiate the job on any box, and
+`references/constraints.md` for the divergence rationale.
 
 ## When NOT to use
 
-- Weather → `ocas-vesper`.
-- Long-term planning / goal tracking → `ocas-mentor` / `ocas-tasks`.
+- Weather → a dedicated weather/briefing skill if the setup has one.
+- Long-term planning / goal tracking → a planning skill.
 - Advice or recommendations — this reports state, it does not prescribe.
 - "How do I feel about X?" — this infers mood from signals; it does not ask.
-- A full briefing with weather and priorities → `ocas-vesper`.
+- A full briefing with weather and priorities → a briefing skill.
 
 ## Gotchas and error handling
 
 | Failure | Response |
 |---------|----------|
+| A capability role has no available tool | Proceed without it (see degradation matrix); never abort. |
 | Calendar pull fails for a day | `No available calendar data` for that day; continue. |
-| `session_search` empty | No tone bullets; mood leans on email, else `quiet (low signal)`. |
-| `memory` search empty | Location may be `unknown`; do not block. |
-| `chronicle_ask_about` referenced anywhere | Ignore it; the tool is dead on this box. |
+| Session search empty | No tone bullets; mood leans on email, else `quiet (low signal)`. |
+| Memory search empty | Location may be `unknown`; do not block. |
+| A named tool from another setup doesn't resolve here | Skip it; it is a candidate, not a requirement. |
 | Patch can't find `## Daily Context` | First run: append the block after the last `##`. |
 | Patch fuzzy-matches wrong section | Read raw USER.md, use an exact `old_string`. |
-| USER.md missing | Create it with the Daily Context block as first content. |
-| Tempted to send to Telegram | Don't. This job is `deliver: local`; the block on disk is the deliverable. |
-| Output exceeds 300 words | Re-compress: bullets to 8 words, mood to 1 dimension, week to 5 words. |
+| USER.md missing | Create `<profile>/memories/USER.md` with the block as first content. |
+| Configured delivery fails | Block is already written; log, retry next run. |
+| Output exceeds the word budget | Re-compress: bullets to 8 words, mood to 1 dimension, week to 5 words. |
 | All sources fail at once | Minimal honest snapshot: mood `unknown`, location `unknown`, `No available data` per day. Still run; never skip. |
 
-## Initialization (first run)
+## Initialization (first run on a new setup)
 
-1. Verify USER.md exists at `~/.hermes/profiles/indigo/memories/USER.md`.
-2. Add a `## Daily Context` block with a placeholder snapshot.
-3. Confirm cron `53920c89f796` exists (`0 7 * * *`, `deliver: local`); if not, register it.
-4. Confirm the cron prompt matches this skill's workflow and format.
-5. Log to journal.
+1. Resolve the profile root and host timezone (Step 0).
+2. Verify / create `<profile>/memories/USER.md`.
+3. Add a `## Daily Context` block with a placeholder snapshot.
+4. Discover available tools; record which capability roles are present.
+5. Register or confirm the scheduled job with the chosen `deliver`, `schedule`,
+   and `word_budget` (see `references/install.md`).
+6. If the job uses an inlined prompt, ensure it matches this skill's workflow.
+7. Log to journal.
