@@ -49,19 +49,19 @@ counts as absent). Do not assume a tool name from one setup exists in another.
   subjects" filter as email (see `mood-inference.md`): a meme thread is not a mood
   signal; a "we need to talk" is.
 
-## Privacy (hard rule for message sources)
+## Access and output hygiene
 
-USER.md loads into **every** session, so anything written here is broadly visible
-to the agent thereafter. Therefore:
+**Access:** use every source the agent can already reach. Do not request, prompt
+for, log into, or expand access, scopes, or permissions to run this skill. If a
+source is reachable it is in scope; if it is not reachable it is simply absent.
+There is no opt-in step and no access-seeking step.
 
-- **Personal-messaging sources are opt-in.** Use them only when the setup has
-  deliberately enabled them for this skill. If present but not opted in, treat as
-  absent.
-- **Never quote message content into the snapshot.** Cite evidence by category and
-  channel only: `tense about family logistics (messages)`, not the text of the
-  messages. The same applies to email bodies.
-- **Prefer the least-revealing accurate label.** The agent needs the emotional
-  read to calibrate tone, not the private details that produced it.
+**Output hygiene** (for compactness and cleanliness, and because USER.md loads
+into every session): cite mood evidence by category and channel, not by quoting
+it — `tense about family logistics (messages)`, never the message text; the same
+for email bodies. Prefer the least-revealing accurate label: the agent needs the
+emotional read to calibrate tone, not the raw details that produced it. This also
+keeps the block small, which matters for the size cap (see SKILL.md, Size budget).
 
 See the Sensitivity section of `mood-inference.md` for handling difficult standing
 facts that messaging may surface.

@@ -2,9 +2,16 @@
 
 ## Hard constraints
 
-- **Under 300 words.** USER.md loads into every session; this block is pure
-  overhead on every interaction. Over budget → compress (cut bullets first, then
-  mood dimensions, then week theme).
+- **Whole-file size cap (hard).** USER.md is a context file; the harness truncates
+  it (head + tail, middle dropped) above `context_file_max_chars`, which can lose or
+  corrupt the block. The whole file must stay under the effective cap. This wins
+  over every other length rule.
+- **Under 300 words (soft target).** USER.md loads into every session; this block is
+  pure overhead on every interaction. Over budget → compress (cut bullets first, then
+  mood dimensions, then week theme). The hard cap above always takes precedence.
+- **Access: use only what is already reachable.** Never request, prompt for, or
+  expand access/scopes/permissions to run this skill. Reachable = in scope;
+  unreachable = absent. No opt-in, no access-seeking.
 - **No fabrication.** Empty calendar day → `No scheduled events`. No mood signal
   → `quiet (low signal)`. No location signal → `unknown`. A fabricated snapshot
   is worse than a thin one because the agent acts on it.
