@@ -3,10 +3,23 @@
 Run this every time, before finishing. The previous version claimed these limits
 but never checked them, so violations shipped daily. Each item is a hard gate.
 
+## Size gates (hard — the file must never exceed the harness cap)
+
+- [ ] **The whole USER.md stays under `context_file_max_chars`.** Resolve the
+      effective cap (config override, else dynamic). After patching, the *total*
+      file size must be `<= cap`. If it is not, the file would be truncated by the
+      harness — re-compress and re-patch until it fits.
+- [ ] **The block fits its budget:** `OTHER + block <= cap - margin`, where `OTHER`
+      is every section except `## Daily Context`. The 300-word target is secondary
+      to this.
+- [ ] **No other section grew.** The patch did not enlarge, add, or reorder any
+      section but `## Daily Context`; `OTHER` is unchanged from before the run.
+
 ## Format gates
 
-- [ ] The block is **under 300 words**. If over, re-compress (bullets to 8 words,
-      mood to 1 dimension, week theme to 5 words) and re-count.
+- [ ] The block is **under 300 words** (soft target, under the hard size cap above).
+      If over, re-compress (bullets to 8 words, mood to 1 dimension, week theme to 5
+      words) and re-count.
 - [ ] **No em dashes** anywhere in the block. Replace with commas/periods.
 - [ ] **No markdown tables** in the block (chat renderers often do not render them).
 - [ ] Each day bullet is **<= 12 words**; at most 3 bullets per day.

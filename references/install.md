@@ -71,6 +71,10 @@ For context, the original deployment (indigo profile) is configured as:
   query tool is treated as absent.
 - Schedule `0 7 * * *` (host TZ America/Los_Angeles), `deliver: local` (silent),
   `word_budget: 300`.
+- Harness cap: `context_file_max_chars: 12000` (explicit in `config.yaml`, so it
+  overrides the dynamic cap). At a recent run USER.md was ~1.9K chars total with
+  ~1.3K in sections other than Daily Context, leaving ample headroom; the skill
+  still measures and enforces it every run rather than assuming.
 - Companion ocas skills handle adjacent jobs (weather/briefing, planning); this
   skill emits none of that. They are optional companions, not dependencies.
 
