@@ -13,7 +13,7 @@ license: MIT
 source: https://github.com/indigokarasu/ocas-usercontext
 metadata:
   author: Indigo Karasu (indigokarasu)
-  version: 3.0.0
+  version: 3.2.0
   hermes:
     tags: [context, daily, cron]
     category: infrastructure
@@ -83,12 +83,14 @@ Rules:
   feed INTERACTION. Read across them; do not stop at the first.
 - **Dedup across channels.** The same outcome may appear in email and in a text.
   Count it once, by impact, not once per channel it touched.
-- **Personal messaging is opt-in and privacy-sensitive.** Use message sources only
-  when the setup has deliberately enabled them. The output is mood *labels with
-  evidence cited by category* (e.g. `tense about family logistics (messages)`) —
-  **never quote private message content into USER.md**, which loads into every
-  session. See `references/data-sources.md` and the Sensitivity rules in
-  `references/mood-inference.md`.
+- **Use everything already reachable; never seek more access.** If the agent can
+  already query a source, it is in scope — use it. Do NOT request, prompt for, or
+  expand access, scopes, logins, or permissions to run this skill. A source that is
+  not already reachable is simply absent; proceed without it. (Keep the output
+  compact and clean: cite mood evidence by channel, e.g.
+  `tense about family logistics (messages)`, rather than pasting raw message text.
+  That is compression and tidiness, not an access gate.) See
+  `references/data-sources.md`.
 - **Every category is optional.** INTERACTION alone still yields a valid snapshot;
   nothing available yields an honest `unknown` one.
 
@@ -108,6 +110,34 @@ Paths are **profile-relative**, never hardcoded to one machine:
 - **Timezone:** resolve the host timezone at runtime (e.g. `timedatectl` / system
   clock). Date math for yesterday/today/tomorrow uses the host's local day, never
   an assumed zone.
+
+## Size budget (hard cap — never exceed)
+
+USER.md is a **context file**: the agent harness truncates it (keeps head + tail,
+drops the middle) if it exceeds the effective `context_file_max_chars`. A truncated
+USER.md can silently lose the Daily Context block or corrupt another section, so
+the block must be sized so the **whole file** stays under the cap. This is a hard
+limit; the word budget below is only a soft target underneath it.
+
+Resolve the cap for THIS setup, in order (do not assume a number):
+
+1. Explicit `context_file_max_chars` in the active config — wins if set.
+2. Else dynamic: `max(20000, min(context_length * 0.24, 500000))` chars, derived
+   from the loading model's context window (~4 chars/token x 6% of the window).
+
+Then, around the patch (Step 7):
+
+- Measure the current total chars of USER.md and the chars of every section
+  *other than* `## Daily Context` — call that `OTHER`.
+- Hard budget for the block = `cap - OTHER - margin` (keep ~500 chars of margin;
+  other sections can change between runs).
+- The new block must fit the budget, and `OTHER + block <= cap` must hold. If the
+  freshly written block is over, re-compress (bullet words to 8, mood to 1
+  dimension, week to 5 words) until it fits.
+- If even a minimal block will not fit because `OTHER` already fills the file,
+  write the smallest valid block, do **not** touch any other section, and emit a
+  warning that USER.md is at its cap so a human can trim the other sections. Never
+  let the file exceed the cap, and never trim another section to make room.
 
 ## Output format
 
@@ -135,7 +165,8 @@ The `## Daily Context` block, written into USER.md exactly as:
 
 ### Compression rules
 
-- Total block **under 300 words** (configurable; see Configuration). It costs context on every session.
+- **Hard ceiling:** the whole USER.md must stay under the harness `context_file_max_chars` cap (see Size budget). This always wins over the word target.
+- Total block **under 300 words** (soft target, configurable; see Configuration). It costs context on every session.
 - Bullets: up to 3 per day, **max 12 words each**.
 - Mood: 1-3 dimensions, each `[label] about [topic]`; or `quiet (low signal)`.
 - Week: one line, max 10 words.
@@ -146,14 +177,18 @@ The `## Daily Context` block, written into USER.md exactly as:
 
 - [ ] **Step 0 — Resolve environment.** Profile root, USER.md path, host timezone.
       Enumerate available tools and classify each into the SCHEDULE / INTERACTION /
-      OUTCOME / STANDING categories. Note which categories have sources (and respect
-      opt-in for personal-messaging sources).
+      OUTCOME / STANDING categories. Use every source the agent can already reach;
+      never request or expand access. Unreachable sources are simply absent.
 - [ ] **Step 1 — Read yesterday's snapshot.** Read the existing `## Daily Context`.
       Note prior mood + location: the trajectory baseline for Step 5. (Absent =
       first run; skip the comparison.)
+- [ ] **Step 1b — Resolve the size budget.** Determine the effective
+      `context_file_max_chars` cap (config override, else dynamic). Measure current
+      USER.md total chars and the chars of all sections other than `## Daily Context`
+      (`OTHER`). Compute the block's hard budget = `cap - OTHER - margin`. See Size budget.
 - [ ] **Step 2 — Build the Signal Ledger.** Gather, do not yet interpret, across all
       present sources: SCHEDULE (3 day pulls), INTERACTION (broad tone scan over
-      sessions and any enabled messaging), OUTCOME (recent results on any channel),
+      sessions and any reachable messaging), OUTCOME (recent results on any channel),
       STANDING (active travel / situations). Write each signal as one line tagged with
       its category and source. **Dedup** the same outcome seen on multiple channels.
       A thin ledger is fine and honest.
@@ -169,8 +204,11 @@ The `## Daily Context` block, written into USER.md exactly as:
 - [ ] **Step 6 — Write the week theme.** One line, max 10 words, from the week's
       calendar shape (travel / deadline-heavy / meeting-heavy / quiet / project push).
 - [ ] **Step 7 — Patch USER.md.** Replace ONLY the `## Daily Context` block (from
-      that heading to the next `##` or EOF). Use an exact match; never touch
-      identity, preferences, or any other section.
+      that heading to the next `##` or EOF). Use an exact match; never add, remove,
+      reorder, or touch identity, preferences, or any other section. Before writing,
+      confirm the block fits the Step 1b budget and that `OTHER + block <= cap`; if
+      not, re-compress until it does. Never let the file exceed the cap, and never
+      trim another section to make room.
 - [ ] **Step 8 — Validate, then act on delivery (do not skip).** Run the
       `references/validation.md` checklist. Then honor the configured `deliver`
       setting (default `local` = silent, write-only). See Configuration.
@@ -185,7 +223,8 @@ skill should read intent from the job/config rather than hardcoding it.
 |------|---------|---------|
 | `deliver` | `local` (silent, write-only) | Where the snapshot goes after the patch. `local` = USER.md only. A chat target (e.g. `origin`, `telegram`) also pushes a copy. Most owners want `local`: USER.md already reaches the agent via session load, so a daily chat push is redundant. |
 | `schedule` | once daily, morning, host TZ | When the job runs. |
-| `word_budget` | 300 | Max words in the block. |
+| `word_budget` | 300 | **Soft** target for block length. The **hard** limit is the harness `context_file_max_chars` cap minus the other sections (see Size budget); the hard limit always wins. |
+| (harness) `context_file_max_chars` | per agent config (dynamic if unset) | Not owned by this skill — read from the active agent config. The whole USER.md, including this block, must stay under it. |
 | `weather_skill` | none | If the setup has a dedicated weather/briefing skill (e.g. `ocas-vesper`), this skill still emits no weather; that skill owns it. Purely informational — no hard dependency. |
 
 ## Runtime wiring (Hermes cron)
@@ -211,13 +250,15 @@ or config here, mirror the essentials into the cron prompt. See
 | Failure | Response |
 |---------|----------|
 | A signal category has no source | Proceed without it (see degradation matrix); never abort. |
+| A source is not already reachable | Proceed without it; never request, prompt for, or expand access to add it. |
+| Writing the block would push USER.md over the cap | Re-compress until it fits; if impossible, write the smallest valid block, warn, and leave other sections untouched. Never exceed the cap. |
+| Other sections already fill the file to the cap | Do not trim them. Write a minimal block and emit an at-cap warning for a human to resolve. |
 | Calendar/schedule pull fails for a day | `No available calendar data` for that day; continue. |
 | INTERACTION sources all empty | No tone bullets; mood leans on OUTCOME, else `quiet (low signal)`. |
 | STANDING search empty | Location may be `unknown`; do not block. |
 | A named tool from another setup doesn't resolve here | Skip it; it is a candidate, not a requirement. |
 | Same outcome appears on several channels | Dedup: count once by impact, not once per channel. |
 | Tempted to quote a personal message | Don't. Cite evidence by category (`... (messages)`); never paste message text into USER.md. |
-| A messaging source is present but not opted in | Treat as absent; do not pull from it. |
 | Patch can't find `## Daily Context` | First run: append the block after the last `##`. |
 | Patch fuzzy-matches wrong section | Read raw USER.md, use an exact `old_string`. |
 | USER.md missing | Create `<profile>/memories/USER.md` with the block as first content. |
