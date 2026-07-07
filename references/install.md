@@ -75,6 +75,10 @@ For context, the original deployment (indigo profile) is configured as:
   overrides the dynamic cap). At a recent run USER.md was ~1.9K chars total with
   ~1.3K in sections other than Daily Context, leaving ample headroom; the skill
   still measures and enforces it every run rather than assuming.
+- Calendar access: Google Workspace via `google_auth.py`. The primary account's
+  OAuth token may expire between cron runs — the agent's own account
+  (`mx.indigo.karasu@gmail.com`) serves as fallback (has calendar sharing).
+  See `references/cron-calendar-access.md` for the full fallback pattern.
 - Companion ocas skills handle adjacent jobs (weather/briefing, planning); this
   skill emits none of that. They are optional companions, not dependencies.
 

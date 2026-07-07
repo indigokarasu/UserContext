@@ -1,4 +1,5 @@
 ---
+license: MIT
 name: ocas-usercontext
 description: >
   Maintains a compressed `## Daily Context` block in the owner's USER.md:
@@ -9,7 +10,6 @@ description: >
   or when the owner asks for a status snapshot. Keywords: daily context, user
   snapshot, mood inference, USER.md update, personal briefing. NOT for weather,
   long-term planning, or advice.
-license: MIT
 source: https://github.com/indigokarasu/ocas-usercontext
 metadata:
   author: Indigo Karasu (indigokarasu)
@@ -27,6 +27,8 @@ triggers:
 # User Daily Context
 
 ## Purpose
+
+When to read this skill: when the daily context block needs refreshing, when its scheduled job has failed, or when the owner asks for a status snapshot.
 
 Keep one block of USER.md — `## Daily Context` — fresh every morning so every
 session that day opens with an accurate read of what is happening in the owner's
@@ -54,7 +56,7 @@ modes and conflating them is this skill's classic defect:
 
 The most common defect in this skill's history is **inferring mood from the
 calendar** ("tea reservation" → "anticipation for tea"). A scheduled event is not
-a feeling. Mood comes from how the owner *interacted* and what *outcomes* landed.
+a feeling. Mood comes from how the owner *interacted* (affective TONE) and what *outcomes* landed. The same rule applies to session *subjects*: a session ABOUT a topic is not the owner feeling that topic -- never convert a discussed subject into a mood.
 If interaction and outcome signal is thin, the correct mood is `quiet (low signal)`,
 not an invention.
 
@@ -192,6 +194,11 @@ The `## Daily Context` block, written into USER.md exactly as:
       STANDING (active travel / situations). Write each signal as one line tagged with
       its category and source. **Dedup** the same outcome seen on multiple channels.
       A thin ledger is fine and honest.
+      For SCHEDULE via Google Calendar in cron mode, the primary account's OAuth
+      token may be expired — use the fallback pattern in
+      `references/cron-calendar-access.md` (try agent's own account which may have
+      calendar sharing permissions). The same event on multiple calendars is one
+      event, not two — dedup by summary + start + location.
 - [ ] **Step 3 — Extract day bullets.** Per day, list calendar events (title + time)
       as bullets. Empty → `No scheduled events`. No editorializing.
 - [ ] **Step 4 — Determine location.** City from today's calendar geography or a
@@ -236,6 +243,13 @@ mirrored in the other is a silent divergence. When you change the workflow, form
 or config here, mirror the essentials into the cron prompt. See
 `references/install.md` for how to instantiate the job on any box, and
 `references/constraints.md` for the divergence rationale.
+
+## When to Use
+
+- Refreshing the daily context block in USER.md
+- Recovering from a failed scheduled context update
+- Owner requests a status snapshot or daily briefing
+- Inferring mood from interaction and outcome signals
 
 ## When NOT to use
 
