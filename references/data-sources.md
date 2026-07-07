@@ -20,6 +20,8 @@ missing category; never abort. Read alongside `mood-inference.md`.
 
 - **SCHEDULE:** a calendar (google-workspace / CalDAV / MCP); plus scheduling info
   embedded elsewhere — flight or reservation confirmations in mail or messages.
+  For Google Calendar in cron mode, see `references/cron-calendar-access.md` for
+  the OAuth fallback pattern and the cron-compatible Python query template.
 - **INTERACTION:** agent session history (`session_search`); **personal messaging
   channels — iMessage, Slack, WhatsApp, Signal, SMS, Discord, Telegram DMs**; the
   conversational texture of email threads.

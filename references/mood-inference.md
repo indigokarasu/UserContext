@@ -18,7 +18,7 @@ bullets, not in mood. Mood evidence comes from two signal categories only:
 1. **INTERACTION tone** — how the owner is communicating *now*, across every
    conversational channel the setup exposes: agent sessions, and any enabled
    personal messaging (iMessage, Slack, WhatsApp, Signal, SMS, Discord), and the
-   texture of email threads. Read pacing, topics raised, topics avoided,
+   texture of email threads. Read pacing and affective TONE (frustration, playfulness, warmth, terseness, urgency). The discussed subject is a FOCUS signal, never a mood (see Topic != Mood below).
    frustration, playfulness, repetition, what the owner kept returning to. The
    owner's tone with *people* is often a richer mood signal than tone with the
    agent — weight it accordingly.
@@ -31,6 +31,23 @@ context* that colors interpretation (a known job transition, a recent loss,
 ongoing travel) but is not itself same-day mood evidence. Use it to interpret
 signals, not to manufacture them. If INTERACTION or OUTCOME has no source, mood
 relies on whichever remains; if both are absent, mood is `quiet (low signal)`.
+
+## Topic != Mood (the leak trap)
+
+The most common way this skill still fabricates mood is converting a *discussed
+subject* into a *felt emotion*. A session or message ABOUT a leak, conflict,
+deadline, or health scare does NOT mean the owner FEELS a corresponding emotion.
+The topic is content; mood is affect.
+
+- "The owner kept returning to X" is a PRIORITY/FOCUS signal, not a mood. It says
+  what they are working on, not how they feel.
+- Only register a mood dimension when AFFECTIVE TONE shows it (the session reads
+  frustrated, anxious, energized) or an OUTCOME resolved (a rejection landed). A
+  neutral-toned session about a serious topic yields NO mood dimension from that
+  topic.
+- If the only signal is "the owner discussed X," the correct mood is
+  `quiet (low signal)` -- not "concerned about X."
+
 
 **Across channels:** read every source in a category, do not stop at the first.
 **Dedup:** the same outcome on email and a text is one signal, not two — counting
