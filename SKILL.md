@@ -127,6 +127,16 @@ Resolve the cap for THIS setup, in order (do not assume a number):
 2. Else dynamic: `max(20000, min(context_length * 0.24, 500000))` chars, derived
    from the loading model's context window (~4 chars/token x 6% of the window).
 
+**Cron-mode measurement pitfall:** When this skill runs as a cron job,
+`execute_code` is BLOCKED (returns a cron-mode refusal, even for pure-Python
+string math). Do NOT use it to measure `OTHER`/total chars. Instead write a tiny
+Python snippet via `write_file` and run it through `terminal` (open the file,
+`find("## Daily Context")`, sum the lengths of everything else, compare to cap).
+The calendar step documents the same constraint in
+`references/cron-calendar-access.md`. Always read the actual `context_file_max_chars`
+value from config; on the indigo box it resolves to `12000`, not the dynamic
+default.
+
 Then, around the patch (Step 7):
 
 - Measure the current total chars of USER.md and the chars of every section
@@ -187,7 +197,9 @@ The `## Daily Context` block, written into USER.md exactly as:
 - [ ] **Step 1b — Resolve the size budget.** Determine the effective
       `context_file_max_chars` cap (config override, else dynamic). Measure current
       USER.md total chars and the chars of all sections other than `## Daily Context`
-      (`OTHER`). Compute the block's hard budget = `cap - OTHER - margin`. See Size budget.
+      (`OTHER`). Compute the block's hard budget = `cap - OTHER - margin`.
+      In cron mode, run this measurement via `write_file` + `terminal` (NOT
+      `execute_code`, which is blocked in cron); see Size budget pitfall.
 - [ ] **Step 2 — Build the Signal Ledger.** Gather, do not yet interpret, across all
       present sources: SCHEDULE (3 day pulls), INTERACTION (broad tone scan over
       sessions and any reachable messaging), OUTCOME (recent results on any channel),
@@ -282,11 +294,10 @@ or config here, mirror the essentials into the cron prompt. See
 
 ## Initialization (first run on a new setup)
 
-1. Resolve the profile root and host timezone (Step 0).
-2. Verify / create `<profile>/memories/USER.md`.
-3. Add a `## Daily Context` block with a placeholder snapshot.
-4. Discover available tools; record which capability roles are present.
-5. Register or confirm the scheduled job with the chosen `deliver`, `schedule`,
-   and `word_budget` (see `references/install.md`).
-6. If the job uses an inlined prompt, ensure it matches this skill's workflow.
-7. Log to journal.
+- [ ] Resolve the profile root and host timezone (Step 0).
+- [ ] Verify / create `<profile>/memories/USER.md`.
+- [ ] Add a `## Daily Context` block with a placeholder snapshot.
+- [ ] Discover available tools; record which capability roles are present.
+- [ ] Register or confirm the scheduled job with the chosen `deliver`, `schedule`, and `word_budget` (see `references/install.md`).
+- [ ] If the job uses an inlined prompt, ensure it matches this skill's workflow.
+- [ ] Log to journal.
