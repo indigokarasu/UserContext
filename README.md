@@ -7,7 +7,7 @@
 UserContext — Daily context generator for owner's USER.md
 
 
-> Tell it what you need. It does the work.
+> Operational skill for the OCAS family.
 
 ---
 
