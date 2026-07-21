@@ -1,12 +1,54 @@
-# UserContext
+# ⚙️ Usercontext
 
-<p align="center">
-  <img src="./assets/readme/hero.jpg" width="100%" alt="UserContext: generates a compressed daily context block from the owner's USER.md for the active Hermes session">
-</p>
+  <img src="./assets/readme/hero.jpg" width="100%" alt="Usercontext">
 
-UserContext compresses the owner's USER.md into a daily context block that the Hermes gateway injects into every session. The block is short by design: it surfaces what the agent needs to know today without repeating the full profile.
+>
 
-**Capabilities:**
-- Daily context compression from USER.md
-- Automatic injection into active sessions
-- Bounded output to avoid context bloat
+**Skill name:** `ocas-usercontext`
+**Version:** 3.2.0
+**Type:** 
+**Layer:** infrastructure
+**Author:** Indigo Karasu
+
+---
+
+## 📖 Overview
+
+>
+
+---
+
+## 🔧 Commands
+
+See `SKILL.md` for verbs and subcommands.
+
+
+---
+
+## 📊 Outputs
+
+See `SKILL.md` for outputs, journals, and persistence rules.
+
+---
+
+## 📄 Files
+
+| File | Purpose |
+|---|---|
+| `SKILL.md` | Skill definition |
+| `references/` | Supporting documentation |
+| `scripts/` | Helper scripts |
+
+
+## 📚 Documentation
+
+Read `SKILL.md` for operational details, schemas, and validation rules.
+
+Read `references/` for detailed specifications and examples.
+
+
+---
+
+## 📄 License
+
+MIT License — see `LICENSE` for details.
