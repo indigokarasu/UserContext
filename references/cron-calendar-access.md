@@ -76,6 +76,24 @@ else:
         # ... process events ...
 ```
 
+## Interpreter gotcha (cron runtime)
+
+The calendar and Gmail helpers import `google_auth_mcp`, which in turn imports
+`requests`. The **default `python3` on the indigo box does NOT have `requests`
+installed**, so running a helper with plain `python3 script.py` fails with:
+
+    ModuleNotFoundError: No module named 'requests'
+
+Run helper scripts with the Hermes virtualenv interpreter instead:
+
+    <hermes-install>/.venv/bin/python <hermes-home>/scripts/_ucal_run.py
+    # alternative: /usr/local/lib/hermes-agent/venv/bin/python
+
+The same applies to the Gmail helper (`_uemail_run.py`). This is a recurring
+cron-mode trap: `execute_code` is blocked AND the system `python3` lacks the
+deps, so the only working path is `write_file` + run via the venv `python`.
+Invoke the inline patterns above with this interpreter, not the system one.
+
 ## Timezone Handling
 
 Always convert event start times to local timezone before displaying. The
