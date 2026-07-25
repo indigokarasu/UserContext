@@ -11,4 +11,4 @@ UserContext — Daily context generator for owner's USER.md
 
 ---
 
-*UserContext is part of the [OCAS Agent Suite](https://github.com/indigokarasu).*
+*UserContext is part of the [OCAS Agent Suite](https://github.com/<agent-handle>).*
