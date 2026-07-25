@@ -10,7 +10,7 @@ description: >
   or when the owner asks for a status snapshot. Keywords: daily context, user
   snapshot, mood inference, USER.md update, personal briefing. NOT for weather,
   long-term planning, or advice.
-source: https://github.com/indigokarasu/ocas-usercontext
+source: https://github.com/<agent-handle>/ocas-usercontext
 metadata:
   author: Indigo Karasu (indigokarasu)
   version: 3.2.0
@@ -208,9 +208,9 @@ The `## Daily Context` block, written into USER.md exactly as:
       A thin ledger is fine and honest.
       For SCHEDULE via Google Calendar in cron mode, the primary account's OAuth
       token may be expired — use the fallback pattern in
-      `references/cron-calendar-access.md` (try agent's own account which may have
-      calendar sharing permissions). The same event on multiple calendars is one
-      event, not two — dedup by summary + start + location.
+      `references/cron-calendar-access.md`, implemented by the bundled
+      `scripts/_ucal_run.py` (run with the Hermes venv python). The same event on
+      multiple calendars is one event, not two — dedup by summary + start + location.
 - [ ] **Step 3 — Extract day bullets.** Per day, list calendar events (title + time)
       as bullets. Empty → `No scheduled events`. No editorializing.
 - [ ] **Step 4 — Determine location.** City from today's calendar geography or a

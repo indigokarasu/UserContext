@@ -1,5 +1,11 @@
 # Cron-Mode Calendar Access (Google Workspace)
 
+Bundled helpers: `scripts/_ucal_run.py` (3-day calendar pull with auto host-TZ
+window, account fallback, and cross-calendar dedup) and `scripts/_uemail_run.py`
+(recent Gmail outcome scan). Run both with the Hermes venv python (see
+Interpreter gotcha). They implement the inline pattern below; prefer them over
+hand-typed code so the fallback logic is not re-derived each run.
+
 When `ocas-usercontext` runs as a cron job and the SCHEDULE source is Google
 Calendar, OAuth tokens can expire between runs (cron has no user present to
 re-authenticate). This reference documents the fallback pattern for reliable
@@ -7,21 +13,21 @@ calendar reads in cron mode.
 
 ## The Problem
 
-The primary account (`operator@example.com`) may return `400 Bad Request`
+The primary account (`<user-google-email>`) may return `400 Bad Request`
 or `invalid_grant` on token refresh. Cron cannot prompt for re-auth, so the run
 would produce `No available calendar data` for all three days.
 
 ## The Fallback
 
-The agent's own account (`mx.indigo.karasu@gmail.com`) has been granted calendar
+The agent's own account (`<agent-email>`) has been granted calendar
 sharing permissions on owner's calendars. It can serve as a complete fallback:
 when the primary account's token is dead, the indigo account can still read both
 the primary and family calendars.
 
 ## Fallback Order
 
-1. Try `operator@example.com` — works when token is valid.
-2. On `400`/`invalid_grant`, try `mx.indigo.karasu@gmail.com` — works when the
+1. Try `<user-google-email>` — works when token is valid.
+2. On `400`/`invalid_grant`, try `<agent-email>` — works when the
    indigo token is valid AND has calendar sharing permissions.
 3. If both fail, log `degraded: oauth_stale` and report honestly.
 
@@ -29,7 +35,7 @@ the primary and family calendars.
 
 | Calendar | ID |
 |----------|-----|
-| owner (primary) | `operator@example.com` |
+| owner (primary) | `<user-google-email>` |
 | Family | `family08350553536598846140@group.calendar.google.com` |
 
 ## Cron-Compatible Python Pattern
@@ -38,11 +44,11 @@ the primary and family calendars.
 
 ```python
 import sys
-sys.path.insert(0, '<hermes-root>/scripts')
+sys.path.insert(0, '~/.hermes/scripts')
 from google_auth_mcp import get_service
 
-calendars_to_query = ['operator@example.com']
-accounts_to_try = ['operator@example.com', 'mx.indigo.karasu@gmail.com']
+calendars_to_query = ['<user-google-email>']
+accounts_to_try = ['<user-google-email>', '<agent-email>']
 
 calendar = None
 working_account = None
@@ -86,10 +92,11 @@ installed**, so running a helper with plain `python3 script.py` fails with:
 
 Run helper scripts with the Hermes virtualenv interpreter instead:
 
-    <hermes-install>/.venv/bin/python <hermes-home>/scripts/_ucal_run.py
+    <hermes-venv>/bin/python ~/.hermes/profiles/indigo/skills/ocas-usercontext/scripts/_ucal_run.py
     # alternative: /usr/local/lib/hermes-agent/venv/bin/python
 
-The same applies to the Gmail helper (`_uemail_run.py`). This is a recurring
+The same applies to the Gmail helper (`scripts/_uemail_run.py` in this skill, run
+with the same venv python). This is a recurring
 cron-mode trap: `execute_code` is blocked AND the system `python3` lacks the
 deps, so the only working path is `write_file` + run via the venv `python`.
 Invoke the inline patterns above with this interpreter, not the system one.
