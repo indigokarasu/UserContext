@@ -1,9 +1,5 @@
 # UserContext
 
-<p align="center">
-<img src="./assets/readme/hero.svg" width="100%" alt="Daily context generator for owner's USER.md">
-</p>
-
 UserContext — Daily context generator for owner's USER.md
 
 
