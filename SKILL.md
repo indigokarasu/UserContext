@@ -56,7 +56,7 @@ modes and conflating them is this skill's classic defect:
 
 The most common defect in this skill's history is **inferring mood from the
 calendar** ("tea reservation" → "anticipation for tea"). A scheduled event is not
-a feeling. Mood comes from how the owner *interacted* (affective TONE) and what *outcomes* landed. The same rule applies to session *subjects*: a session ABOUT a topic is not the owner feeling that topic -- never convert a discussed subject into a mood.
+a feeling. Mood comes from how the owner *interacted* (affective TONE) and what *outcomes* landed. The same rule applies to session *subjects*: a session ABOUT a topic is not the owner feeling that topic -- never convert a discussed subject into a mood. Transactional, security, travel, purchase, and notification emails are not emotional evidence by themselves: never convert an alert or risk topic into `worried`, `anxious`, or similar without explicit affective language from the owner or a clearly affective interaction.
 If interaction and outcome signal is thin, the correct mood is `quiet (low signal)`,
 not an invention.
 
@@ -221,7 +221,13 @@ The `## Daily Context` block, written into USER.md exactly as:
       persists, `now`/`shifted` if changed, drop vanished moods. Thin ledger →
       `quiet (low signal)`.
 - [ ] **Step 6 — Write the week theme.** One line, max 10 words, from the week's
-      calendar shape (travel / deadline-heavy / meeting-heavy / quiet / project push).
+      calendar shape and active standing context. Distinguish an extended stay
+      or relocation from a travel-heavy itinerary: use `extended stay in [place]`
+      when a single location spans multiple weeks; reserve `travel-heavy week`
+      for frequent movement or multiple trips. When a durable project is active
+      during the stay, combine them, for example `Honolulu vacation and
+      construction project`. Other themes include deadline-heavy,
+      meeting-heavy, quiet, or project push.
 - [ ] **Step 7 — Patch USER.md.** Replace ONLY the `## Daily Context` block (from
       that heading to the next `##` or EOF). Use an exact match; never add, remove,
       reorder, or touch identity, preferences, or any other section. Before writing,

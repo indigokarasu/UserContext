@@ -35,7 +35,7 @@ the primary and family calendars.
 
 | Calendar | ID |
 |----------|-----|
-| the operator (primary) | `<user-google-email>` |
+| Operator (primary) | `<user-google-email>` |
 | Family | `<family-calendar-id>` |
 
 ## Cron-Compatible Python Pattern
