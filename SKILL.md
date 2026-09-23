@@ -308,3 +308,7 @@ or config here, mirror the essentials into the cron prompt. See
 - [ ] Register or confirm the scheduled job with the chosen `deliver`, `schedule`, and `word_budget` (see `references/install.md`).
 - [ ] If the job uses an inlined prompt, ensure it matches this skill's workflow.
 - [ ] Log to journal.
+
+## Support Files
+
+- `scripts/pull_calendar.py` — 3-day calendar pull for ocas-usercontext cron job. Uses google_auth_mcp with fallback from the operator's token to...
