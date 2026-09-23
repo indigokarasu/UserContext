@@ -286,6 +286,7 @@ or config here, mirror the essentials into the cron prompt. See
 | Writing the block would push USER.md over the cap | Re-compress until it fits; if impossible, write the smallest valid block, warn, and leave other sections untouched. Never exceed the cap. |
 | Other sections already fill the file to the cap | Do not trim them. Write a minimal block and emit an at-cap warning for a human to resolve. |
 | Calendar/schedule pull fails for a day | `No available calendar data` for that day; continue. |
+| Calendar helper returns events from unexpected dates | Stale or broken helper copy: do not use the output. Confirm the helper derives its windows from the run date (skill-bundled `scripts/_ucal_run.py`), re-pull, and only write verified in-window events. |
 | INTERACTION sources all empty | No tone bullets; mood leans on OUTCOME, else `quiet (low signal)`. |
 | STANDING search empty | Location may be `unknown`; do not block. |
 | A named tool from another setup doesn't resolve here | Skip it; it is a candidate, not a requirement. |
