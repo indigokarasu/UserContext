@@ -298,6 +298,7 @@ or config here, mirror the essentials into the cron prompt. See
 | Configured delivery fails | Block is already written; log, retry next run. |
 | Output exceeds the word budget | Re-compress: bullets to 8 words, mood to 1 dimension, week to 5 words. |
 | All sources fail at once | Minimal honest snapshot: mood `unknown`, location `unknown`, `No available data` per day. Still run; never skip. |
+| Chronicle write (`chronicle_record.py`) fails with `database is locked` under multi-writer load | Retry with the waited runner: `scripts/_urecord_run.py --signals <file>` (raises the store's 5s start-up busy bound to 120s, then runs the sanctioned script unchanged). Fast-fail attempts alone can lose for minutes; verify by reading the fact back. |
 
 ## Initialization (first run on a new setup)
 
@@ -311,4 +312,5 @@ or config here, mirror the essentials into the cron prompt. See
 
 ## Support Files
 
+- `scripts/_urecord_run.py` — waited runner for `chronicle_record.py` durable-outcome writes under chronicle.db lock contention (see Gotchas).
 - `scripts/pull_calendar.py` — 3-day calendar pull for ocas-usercontext cron job. Uses google_auth_mcp with fallback from the operator's token to...
