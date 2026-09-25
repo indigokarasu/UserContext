@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 3-day calendar pull for ocas-usercontext cron job.
-Uses google_auth_mcp with fallback from the operator's token to Indigo's token.
+Uses google_auth_mcp with fallback from the operator's token to the agent's token.
 Outputs JSON with events for yesterday, today, tomorrow.
 """
 
@@ -11,23 +11,24 @@ import json
 from datetime import datetime, timezone, timedelta
 
 # Add google_auth_mcp to path
-sys.path.insert(0, '~/.hermes/scripts')
+sys.path.insert(0, os.path.expanduser('~/.hermes/scripts'))
 
 from google_auth_mcp import get_service
+from _ucenv import get as envget
 
 # Timezone handling - host is America/Los_Angeles (PDT = -07:00 in August)
 PDT = timezone(timedelta(hours=-7))
 
 # Calendar IDs to query
 CALENDARS = [
-    '<operator-email>',  # the operator's primary
-    '<family-calendar-id>',  # Family calendar
+    envget('OCAS_OPERATOR_EMAIL'),  # operator primary
+    envget('OCAS_FAMILY_CALENDAR_ID'),  # family calendar
 ]
 
 # Accounts to try in order (fallback pattern) - use the email addresses that match credential files
 ACCOUNTS = [
-    '<operator-email>',
-    'mx.indigo.karasu@gmail.com',
+    envget('OCAS_OPERATOR_EMAIL'),
+    'mx.indigo.karasu@gmail.com',  # agent fallback (public address)
 ]
 
 def get_calendar_service():

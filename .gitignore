@@ -5,3 +5,5 @@ session-*.md
 *-cookies.json
 __pycache__/
 *.pyc
+new_context.md
+*stderr.log

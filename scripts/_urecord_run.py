@@ -23,7 +23,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve()
 PROFILE = HERE.parents[3]  # <profile>/skills/ocas-usercontext/scripts/_urecord_run.py
 DISPATCH_SCRIPT = PROFILE / "skills" / "ocas-dispatch" / "scripts" / "chronicle_record.py"
-CHRONICLE_PLUGIN = Path(os.environ.get("CHRONICLE_PLUGIN", "~/.hermes/plugins/chronicle"))
+CHRONICLE_PLUGIN = Path(os.environ.get("CHRONICLE_PLUGIN", os.path.expanduser("~/.hermes/plugins/chronicle")))
 
 
 def main():

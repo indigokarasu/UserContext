@@ -36,7 +36,7 @@ the primary and family calendars.
 | Calendar | ID |
 |----------|-----|
 | Operator (primary) | `<user-google-email>` |
-| Family | `<family-calendar-id>` |
+| Family | `<family-calendar-id>` (see `OCAS_FAMILY_CALENDAR_ID` in the profile .env) |
 
 ## Cron-Compatible Python Pattern
 

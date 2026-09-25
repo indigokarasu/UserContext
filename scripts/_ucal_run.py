@@ -15,7 +15,7 @@ import json
 from datetime import datetime, timedelta
 
 # Make google_auth_mcp importable on this box (profile scripts, then shared).
-for p in ('~/.hermes/profiles/indigo/scripts', '~/.hermes/scripts'):
+for p in (os.path.expanduser('~/.hermes/profiles/indigo/scripts'), os.path.expanduser('~/.hermes/scripts')):
     if os.path.isdir(p) and p not in sys.path:
         sys.path.insert(0, p)
 
@@ -27,15 +27,16 @@ except Exception:
     TZ = timezone(timedelta(hours=-7))
 
 from google_auth_mcp import get_service
+from _ucenv import get as envget
 
 CALENDARS = [
-    '<operator-email>',  # Primary
-    '<family-calendar-id>',  # Family
+    envget('OCAS_OPERATOR_EMAIL'),  # operator primary
+    envget('OCAS_FAMILY_CALENDAR_ID'),  # family calendar
 ]
 
 ACCOUNTS = [
-    '<operator-email>',
-    'mx.indigo.karasu@gmail.com',
+    envget('OCAS_OPERATOR_EMAIL'),
+    'mx.indigo.karasu@gmail.com',  # agent fallback (public address)
 ]
 
 

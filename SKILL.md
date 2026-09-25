@@ -313,4 +313,4 @@ or config here, mirror the essentials into the cron prompt. See
 ## Support Files
 
 - `scripts/_urecord_run.py` — waited runner for `chronicle_record.py` durable-outcome writes under chronicle.db lock contention (see Gotchas).
-- `scripts/pull_calendar.py` — 3-day calendar pull for ocas-usercontext cron job. Uses google_auth_mcp with fallback from the operator's token to...
+- `scripts/pull_calendar.py` — 3-day calendar pull for ocas-usercontext cron job. Uses google_auth_mcp with fallback from the operator's token to the agent's token.

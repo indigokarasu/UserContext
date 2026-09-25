@@ -4,15 +4,17 @@
 Lists metadata (From/Subject/Date) for messages in the last 48h on the primary
 account. Run with the Hermes venv python.
 """
+import os
 import sys
 import json
 from datetime import datetime, timezone, timedelta
 
-sys.path.insert(0, '~/.hermes/profiles/indigo/scripts')
+sys.path.insert(0, os.path.expanduser('~/.hermes/profiles/indigo/scripts'))
 from google_auth_mcp import get_gmail_service
+from _ucenv import get as envget
 
 try:
-    svc = get_gmail_service(account='<operator-email>')
+    svc = get_gmail_service(account=envget('OCAS_OPERATOR_EMAIL'))
 except Exception as e:
     print(json.dumps({"DEGRADED": str(e)}))
     sys.exit(0)
