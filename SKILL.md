@@ -212,7 +212,8 @@ The `## Daily Context` block, written into USER.md exactly as:
       `scripts/_ucal_run.py` (run with the Hermes venv python). The same event on
       multiple calendars is one event, not two — dedup by summary + start + location.
 - [ ] **Step 3 — Extract day bullets.** Per day, list calendar events (title + time)
-      as bullets. Empty → `No scheduled events`. No editorializing.
+      as bullets. Each event is filed under its own date's section only;
+      never shift events between days. Empty → `No scheduled events`. No editorializing.
 - [ ] **Step 4 — Determine location.** City from today's calendar geography or a
       memory travel signal. No signal → `unknown`. Never guess from home base.
 - [ ] **Step 5 — Infer mood.** Read `references/mood-inference.md` in full. Build

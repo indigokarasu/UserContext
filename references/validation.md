@@ -33,6 +33,10 @@ but never checked them, so violations shipped daily. Each item is a hard gate.
       signal, delete the dimension. Calendar events are NOT mood evidence.
 - [ ] **No fabricated events.** Every bullet maps to a real calendar entry, or the
       day says `No scheduled events`.
+- [ ] **Day mapping.** Every bullet under a day heading comes from a source line
+      with that same date: today's bullets dated today, tomorrow's dated tomorrow.
+      Re-check each bullet's source date after writing; a bullet filed under the
+      wrong day is a failed gate.
 - [ ] **Location is real or `unknown`.** Not assumed from home base.
 - [ ] **No private content leaked.** No message or email text is quoted in the
       block. Mood evidence is cited by channel only (e.g. `(messages)`). Outcomes
