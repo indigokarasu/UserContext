@@ -36,7 +36,10 @@ but never checked them, so violations shipped daily. Each item is a hard gate.
 - [ ] **Day mapping.** Every bullet under a day heading comes from a source line
       with that same date: today's bullets dated today, tomorrow's dated tomorrow.
       Re-check each bullet's source date after writing; a bullet filed under the
-      wrong day is a failed gate.
+      wrong day is a failed gate. Convert any UTC-stamped source timestamp to the
+      host's local day *before* matching (see Signal categories). For an empty day,
+      the `No scheduled events` line is valid only when that source day genuinely
+      has zero events in the pulled window.
 - [ ] **Location is real or `unknown`.** Not assumed from home base.
 - [ ] **No private content leaked.** No message or email text is quoted in the
       block. Mood evidence is cited by channel only (e.g. `(messages)`). Outcomes

@@ -77,6 +77,12 @@ absent; the run degrades, it never aborts.
 
 Rules:
 
+- **Normalize every timestamp to the host's local day before filing it.** Gmail and
+  most APIs return `+0000` (UTC) dates. A message stamped `26 Sep 04:18 UTC` is
+  `25 Sep 21:18 PDT`, so filing it under "Today" is a day-mapping failure, not a
+  rounding detail. The 3-day calendar window and the USER.md day headings are both
+  in host-local time; any source timestamp must be converted before it is matched
+  to a day. This is the single most common way this skill ships wrong-day bullets.
 - **Discover and classify, don't assume.** List the tools this setup exposes, map
   each to one or more categories, record what's present. Never call a tool you have
   not confirmed exists. A new channel the owner adds (a fresh MCP messaging server,
@@ -222,13 +228,17 @@ The `## Daily Context` block, written into USER.md exactly as:
       persists, `now`/`shifted` if changed, drop vanished moods. Thin ledger →
       `quiet (low signal)`.
 - [ ] **Step 6 — Write the week theme.** One line, max 10 words, from the week's
-      calendar shape and active standing context. Distinguish an extended stay
-      or relocation from a travel-heavy itinerary: use `extended stay in [place]`
-      when a single location spans multiple weeks; reserve `travel-heavy week`
-      for frequent movement or multiple trips. When a durable project is active
-      during the stay, combine them, for example `Honolulu vacation and
-      construction project`. Other themes include deadline-heavy,
-      meeting-heavy, quiet, or project push.
+      calendar shape and active standing context. **Check the validity window of
+      every project/travel fact before using it**: a fact whose `valid_until` has
+      passed (e.g. a dated vacation or construction project) is expired and must
+      not drive today's theme, even while it is still flagged `status=active`.
+      "Currently recorded" does not mean "currently true". Distinguish an extended
+      stay or relocation from a travel-heavy itinerary: use `extended stay in
+      [place]` when a single location spans multiple weeks; reserve `travel-heavy
+      week` for frequent movement or multiple trips. When a durable project is
+      active during the stay, combine them, for example `Honolulu vacation and
+      construction project`. Other themes include deadline-heavy, meeting-heavy,
+      quiet, or project push.
 - [ ] **Step 7 — Patch USER.md.** Replace ONLY the `## Daily Context` block (from
       that heading to the next `##` or EOF). Use an exact match; never add, remove,
       reorder, or touch identity, preferences, or any other section. Before writing,
