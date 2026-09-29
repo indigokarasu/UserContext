@@ -1,21 +1,19 @@
 name: Repository discoverability bootstrap
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
+    paths:
+      - .github/workflows/discoverability-bootstrap.yml
 permissions:
   contents: write
   issues: write
 jobs:
-  metadata:
+  discoverability:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
     steps:
-      - name: Repository description and topics
-        run: |
-          gh api --method PATCH "repos/$REPO" -f description='UserContext: daily context generator that compiles personal signals into an up-to-date USER.md for agent runtimes.'
-          gh api --method PUT "repos/$REPO/topics" -H "Accept: application/vnd.github+json" -F 'names[]=ai-agent' -F 'names[]=automation' -F 'names[]=context' -F 'names[]=context-management' -F 'names[]=hermes-agent' -F 'names[]=personalization' -F 'names[]=python' -F 'names[]=user-context'
       - name: Standard labels
         continue-on-error: true
         run: |
