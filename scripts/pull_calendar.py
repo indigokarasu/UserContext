@@ -1,148 +1,55 @@
 #!/usr/bin/env python3
-"""
-3-day calendar pull for ocas-usercontext cron job.
-Uses google_auth_mcp with fallback from the operator's token to the agent's token.
-Outputs JSON with events for yesterday, today, tomorrow.
-"""
+"""DEPRECATED shim: use scripts/_ucal_run.py instead.
 
+This file was a near-duplicate of _ucal_run.py and has been retired. It is kept
+as a forwarding shim so any external caller importing or shelling out to
+`pull_calendar.py` keeps working. It is NOT a second implementation.
+
+Why it was retired (2026-09-30 10khr critique):
+  1. D9 hazard. It had no argument handling at all, so `--help` performed a
+     real authenticated 6-query Google Calendar pull and printed the owner's
+     events. Probing a script for usage must never touch a live account.
+  2. DST correctness. It hardcoded `timezone(timedelta(hours=-7))` (PDT) and so
+     mis-filed every event by an hour between November and March. Its own
+     reference (references/cron-calendar-access.md) warns: "Use the correct
+     offset for the TARGET date, not today's date" — which this file did not
+     do. _ucal_run.py resolves the zone via zoneinfo instead.
+  3. Duplication. Two copies of the same query/dedup logic meant a fix to one
+     silently did not apply to the other, which is how the DST defect survived.
+
+It now delegates everything — flags, output, exit codes — to _ucal_run.py, so
+the two paths cannot diverge again.
+
+Usage:
+  <hermes-venv>/bin/python pull_calendar.py [--help]     (delegates)
+  <hermes-venv>/bin/python _ucal_run.py [--help]         (canonical)
+"""
 import sys
+
+# D9: help guard before the delegation, so --help is answered without an import
+# of google_auth_mcp and without any network call.
+if "--help" in sys.argv or "-h" in sys.argv:
+    print((__doc__ or "<no docstring>").strip())
+    sys.exit(0)
+
 import os
-import json
-from datetime import datetime, timezone, timedelta
+import runpy
 
-# Add google_auth_mcp to path
-sys.path.insert(0, os.path.expanduser('~/.hermes/scripts'))
+TARGET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_ucal_run.py")
 
-from google_auth_mcp import get_service
-from _ucenv import get as envget
+if not os.path.exists(TARGET):
+    print(f"DEGRADED: canonical helper missing at {TARGET}", file=sys.stderr)
+    sys.exit(2)
 
-# Timezone handling - host is America/Los_Angeles (PDT = -07:00 in August)
-PDT = timezone(timedelta(hours=-7))
+# DeprecationWarning is suppressed by default outside __main__ (PEP 565), so a
+# caller shelled out to this file would never learn it is retired. Print to
+# stderr explicitly instead of relying on warnings.warn.
+print(
+    "WARNING: pull_calendar.py is deprecated and now delegates to "
+    "_ucal_run.py. Update any caller that still names it.",
+    file=sys.stderr)
 
-# Calendar IDs to query
-CALENDARS = [
-    envget('OCAS_OPERATOR_EMAIL'),  # operator primary
-    envget('OCAS_FAMILY_CALENDAR_ID'),  # family calendar
-]
+# Preserve the caller's argv shape: _ucal_run.py reads sys.argv for --help only.
+sys.argv = [TARGET] + sys.argv[1:]
 
-# Accounts to try in order (fallback pattern) - use the email addresses that match credential files
-ACCOUNTS = [
-    envget('OCAS_OPERATOR_EMAIL'),
-    'mx.indigo.karasu@gmail.com',  # agent fallback (public address)
-]
-
-def get_calendar_service():
-    """Try each account until one works."""
-    for account in ACCOUNTS:
-        try:
-            cal = get_service('calendar', 'v3',
-                ['https://www.googleapis.com/auth/calendar.readonly'],
-                account=account)
-            # Test the connection
-            cal.calendarList().list(maxResults=1).execute()
-            print(f"Using account: {account}", file=sys.stderr)
-            return cal
-        except Exception as e:
-            print(f"Account {account} failed: {e}", file=sys.stderr)
-            continue
-    return None
-
-def parse_event_time(ev):
-    """Parse event start time to local timezone."""
-    start = ev.get('start', {})
-    if 'dateTime' in start:
-        raw = start['dateTime']
-        if raw.endswith('Z'):
-            dt = datetime.fromisoformat(raw.replace('Z', '+00:00'))
-        else:
-            dt = datetime.fromisoformat(raw)
-        local_dt = dt.astimezone(PDT)
-        return local_dt.strftime('%H:%M'), local_dt.date()
-    elif 'date' in start:
-        # All-day event
-        dt = datetime.fromisoformat(start['date']).date()
-        return 'all day', dt
-    return None, None
-
-def format_event(ev):
-    """Format event as bullet string."""
-    time_str, event_date = parse_event_time(ev)
-    if time_str is None:
-        return None
-    summary = ev.get('summary', '(no title)')
-    location = ev.get('location', '')
-    if location:
-        return f"{summary}, {time_str}, {location}"
-    return f"{summary}, {time_str}"
-
-def pull_events_for_date(calendar, target_date):
-    """Pull events for a specific date from all calendars."""
-    # timeMin = start of target date in PDT
-    # timeMax = start of next day in PDT
-    time_min = datetime.combine(target_date, datetime.min.time(), tzinfo=PDT).isoformat()
-    time_max = datetime.combine(target_date + timedelta(days=1), datetime.min.time(), tzinfo=PDT).isoformat()
-
-    all_events = []
-    seen = set()  # for dedup: (summary, start_time, location)
-
-    for cal_id in CALENDARS:
-        try:
-            result = calendar.events().list(
-                calendarId=cal_id,
-                timeMin=time_min,
-                timeMax=time_max,
-                singleEvents=True,
-                orderBy='startTime',
-                showDeleted=False
-            ).execute()
-            events = result.get('items', [])
-            for ev in events:
-                time_str, ev_date = parse_event_time(ev)
-                if ev_date != target_date:
-                    continue
-                summary = ev.get('summary', '(no title)')
-                location = ev.get('location', '')
-                start_dt = ev.get('start', {}).get('dateTime', ev.get('start', {}).get('date', ''))
-                dedup_key = (summary, start_dt, location)
-                if dedup_key not in seen:
-                    seen.add(dedup_key)
-                    formatted = format_event(ev)
-                    if formatted:
-                        all_events.append(formatted)
-        except Exception as e:
-            print(f"Error querying calendar {cal_id}: {e}", file=sys.stderr)
-
-    return all_events
-
-def main():
-    # Current date in host timezone
-    now = datetime.now(PDT)
-    today = now.date()
-    yesterday = today - timedelta(days=1)
-    tomorrow = today + timedelta(days=1)
-
-    calendar = get_calendar_service()
-    if calendar is None:
-        print(json.dumps({
-            "yesterday": ["No available calendar data"],
-            "today": ["No available calendar data"],
-            "tomorrow": ["No available calendar data"],
-            "degraded": "oauth_stale"
-        }))
-        return
-
-    result = {
-        "yesterday": pull_events_for_date(calendar, yesterday),
-        "today": pull_events_for_date(calendar, today),
-        "tomorrow": pull_events_for_date(calendar, tomorrow),
-    }
-
-    # Replace empty lists with "No scheduled events"
-    for day in result:
-        if day != "degraded" and not result[day]:
-            result[day] = ["No scheduled events"]
-
-    print(json.dumps(result))
-
-if __name__ == '__main__':
-    main()
+runpy.run_path(TARGET, run_name="__main__")

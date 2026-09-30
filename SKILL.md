@@ -143,15 +143,70 @@ The calendar step documents the same constraint in
 value from config; on the indigo box it resolves to `12000`, not the dynamic
 default.
 
+**⚠️ TWO CAPS, ONE BINDING (confirmed 2026-09-29):** `context_file_max_chars`
+(12000 here) is the *harness* truncation cap — the agent loads USER.md and
+slices it if it overflows. `user_char_limit` (1375 here, set explicitly in
+config.yaml under `memory:`) is the *memory-tool* cap — `tools.memory_tool`
+warns "USER.md exceeds its char limit on load: N/1375" and **blocks further
+memory-tool additions**. They are independent knobs and they disagree on this
+box: 12000 vs 1375. The memory tool's warning fires on every session load while
+over, so the file must satisfy **both**, and the stricter one always wins.
+
+Step 1b previously resolved only `context_file_max_chars`, wrote a block sized
+to 12000, and left the file at ~1500 chars — over the 1375 memory-tool limit,
+which then warned on every load and, because `daily-user-context` rewrites the
+block four times a day, produced an unbounded fix-loop: trim → usercontext
+expands → trim again.
+
+**Rule:** resolve BOTH caps in Step 1b and set
+`effective_cap = min(context_file_max_chars, user_char_limit)`. Read
+`user_char_limit` from the same config the skill already reads (profile
+config.yaml `memory.user_char_limit`, falling back to root config.yaml). If
+`user_char_limit` is unset, fall back to `context_file_max_chars` — do not
+assume 1375. Budget the block to `effective_cap - OTHER - margin` and re-compress
+until `OTHER + block <= effective_cap`. The memory-tool warning is the
+authoritative signal here: if it is firing, the cap is wrong, not the block.
+
+**⚠️ An inlined cron prompt OVERRIDES this section (confirmed 2026-09-29):**
+`daily-user-context` carries its own copy of the workflow inline in the job's
+`prompt` field, and it said "Enforce the skill's 12,000-character cap" while
+this SKILL.md said the same thing. A literal number in an inlined prompt beats
+any rule added to the skill file later, so a SKILL.md-only fix silently does
+nothing. **If the job's `prompt` mentions a cap, fix that string too** — read
+it with `hermes cron edit <id> --prompt` or edit the prompt in the registry. When
+installing this skill, do not let the installer's inlined prompt hardcode a cap
+literal; have it name Step 1b and let the skill resolve the number.
+
+**⚠️ Trimming the file is the wrong layer, and it will keep failing (confirmed
+2026-09-29):** four consecutive custodian passes trimmed USER.md to get under
+1375 (1388→1347→1516→…), and each time `daily-user-context` regenerated the
+block within 90 minutes because it sizes to the cap it was told about. If a
+memory-file overflow recurs after a trim, the producer's budget logic is the
+defect — stop trimming and fix the cap resolution. Two symptoms confirm this
+class: the file regrows faster than a human could edit it, and the enforcing
+limit is not the one the producer was given.
+
 Then, around the patch (Step 7):
 
 - Measure the current total chars of USER.md and the chars of every section
   *other than* `## Daily Context` — call that `OTHER`.
-- Hard budget for the block = `cap - OTHER - margin` (keep ~500 chars of margin;
-  other sections can change between runs).
-- The new block must fit the budget, and `OTHER + block <= cap` must hold. If the
-  freshly written block is over, re-compress (bullet words to 8, mood to 1
-  dimension, week to 5 words) until it fits.
+- **Margin is PROPORTIONAL, and it is capped (fixed 2026-09-29).** A flat
+  `margin = 500` is arithmetically satisfiable only when
+  `OTHER <= cap - 500`. Live on this box: `cap = 1375`, `OTHER = 534`, so the
+  flat-500 budget is `341` chars while the real block is `730` — **the rule was
+  violated on every compliant run**, and the agent kept re-compressing to chase
+  a target it could not hit. Four custodian passes then read that as "the
+  producer still over-writes" and trimmed the file, which is why the file
+  regrew: the producer was obeying a budget, just an impossible one.
+
+  Use `margin = min(200, cap // 10)` (137 here), floored at 50. Never a flat
+  500. If `OTHER > cap - margin`, the margin is unreachable by construction:
+  say so in the run output, write the smallest valid block, and do **not**
+  re-compress to chase it.
+- Hard budget for the block = `cap - OTHER - margin`. The new block must fit
+  it, and `OTHER + block <= cap` must hold. If the freshly written block is
+  over, re-compress (bullet words to 8, mood to 1 dimension, week to 5 words)
+  until it fits.
 - If even a minimal block will not fit because `OTHER` already fills the file,
   write the smallest valid block, do **not** touch any other section, and emit a
   warning that USER.md is at its cap so a human can trim the other sections. Never

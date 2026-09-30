@@ -11,7 +11,12 @@ but never checked them, so violations shipped daily. Each item is a hard gate.
       harness — re-compress and re-patch until it fits.
 - [ ] **The block fits its budget:** `OTHER + block <= cap - margin`, where `OTHER`
       is every section except `## Daily Context`. The 300-word target is secondary
-      to this.
+      to this. **`margin = min(200, cap // 10)`, floored at 50 — never a flat
+      500** (fixed 2026-09-29: at `cap=1375`, `OTHER=534` a flat 500 demands a
+      341-char block against a real 730, so the gate could not be satisfied and
+      the loop it appeared to catch was the gate itself). If `OTHER > cap - margin`,
+      the margin is unreachable by construction: record that, write the smallest
+      valid block, and do not re-compress chasing it.
 - [ ] **No other section grew.** The patch did not enlarge, add, or reorder any
       section but `## Daily Context`; `OTHER` is unchanged from before the run.
 

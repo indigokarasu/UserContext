@@ -8,8 +8,36 @@ primary + family calendars, dedupes by summary+start+location, and prints JSON:
 
 Run with the Hermes venv python, e.g.:
   <hermes-venv>/bin/python <this file>
+
+Usage:
+  <hermes-venv>/bin/python _ucal_run.py [--help]
+
+Options:
+  -h, --help   Show this help message and exit 0 without touching Google.
+
+Exit codes:
+  0  Pull completed, OR both OAuth tokens were dead and the run degraded
+     honestly (the JSON carries "degraded": "oauth_stale"). Degrading is NOT a
+     failure: this skill reports a thin snapshot rather than aborting, so the
+     cron caller must read the JSON, not the exit code, to detect staleness.
+  2  Usage error.
+
+I/O:
+  stdout  one JSON object: {"yesterday": [...], "today": [...], "tomorrow": [...]}
+          each entry "Summary, HH:MM, Location" (location omitted when absent);
+          an empty day is ["No scheduled events"], a dead-token run is
+          ["No available calendar data"] plus the "degraded" key.
+  stderr  which account authenticated, and per-calendar query errors.
 """
 import sys
+
+# D9: help guard FIRST, before every import and side effect. Without this,
+# `--help` performed a real authenticated 6-query calendar pull. `__doc__ or ""`
+# because `python -OO` strips the module docstring.
+if "--help" in sys.argv or "-h" in sys.argv:
+    print((__doc__ or "<no docstring>").strip())
+    sys.exit(0)
+
 import os
 import json
 from datetime import datetime, timedelta
