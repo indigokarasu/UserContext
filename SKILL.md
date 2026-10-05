@@ -287,7 +287,16 @@ The `## Daily Context` block, written into USER.md exactly as:
       every project/travel fact before using it**: a fact whose `valid_until` has
       passed (e.g. a dated vacation or construction project) is expired and must
       not drive today's theme, even while it is still flagged `status=active`.
-      "Currently recorded" does not mean "currently true". Distinguish an extended
+      "Currently recorded" does not mean "currently true". **On this box the trap is
+      concrete**: Chronicle's `active_project` fact reads "Jared is in Hawaii from
+      August 1 through August 30, 2026 for a vacation and construction project" and
+      carries `status=active` with `valid_until=NULL`, because the date range lives
+      *inside the value string* and not in a validity column. It still surfaced as the
+      week theme ("Axios Mon; Honolulu") weeks after the window closed. Read the date
+      range out of the value and compare it to today; a NULL `valid_until` is not a
+      licence to treat a dated trip as live. The durable replacement for that theme is
+      the project name (`Honu Hale`), which stays accurate when the trip does not.
+      Distinguish an extended
       stay or relocation from a travel-heavy itinerary: use `extended stay in
       [place]` when a single location spans multiple weeks; reserve `travel-heavy
       week` for frequent movement or multiple trips. When a durable project is
