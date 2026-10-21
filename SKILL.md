@@ -10,7 +10,7 @@ description: >
   or when the owner asks for a status snapshot. Keywords: daily context, user
   snapshot, mood inference, USER.md update, personal briefing. NOT for weather,
   long-term planning, or advice.
-source: https://github.com/<agent-handle>/ocas-usercontext
+source: https://github.com/indigokarasu/ocas-usercontext
 metadata:
   author: Indigo Karasu (indigokarasu)
   version: 3.2.0
